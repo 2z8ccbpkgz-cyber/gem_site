@@ -659,6 +659,8 @@
     qEl.addEventListener('input', function () { refreshCatalog(); setQ(qEl.value); });
     qEl.addEventListener('focus', function () { refreshCatalog(); });
     clr.addEventListener('click', function () { setQ('', true); qEl.focus(); });
+    // курсор сразу в строке поиска (телефон и компьютер); если открыто конкретное изделие — не отвлекаем
+    if (!S.id) { try { qEl.focus({ preventScroll: true }); } catch (e) { try { qEl.focus(); } catch (x) {} } }
     document.getElementById('shopSort').addEventListener('change', function (e) { S.sort = e.target.value; renderShop(); syncUrl(); });
     document.getElementById('shopChips').addEventListener('click', function (e) { var b = e.target.closest('[data-c]'); if (!b) return; S.c = b.getAttribute('data-c'); S.limit = 48; renderShop(); syncUrl(); });
     document.getElementById('shopMore').addEventListener('click', function () { S.limit += 48; renderShop(); });

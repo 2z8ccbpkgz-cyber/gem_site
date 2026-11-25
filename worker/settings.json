@@ -1,16 +1,16 @@
 {
   "script": "gemstone-public",
   "account_id": "5c0e15200a46984774052066eab98aae",
-  "active_version_id": "082e4004-398c-4f3f-b777-bc3188c8300a",
-  "active_version_number": 76,
+  "active_version_id": "c2c5cd86-2b62-4102-8bf3-62d6c0e4c0e8",
+  "active_version_number": 77,
   "deployment_strategy": "percentage",
   "deployment_versions": [
     {
-      "version_id": "082e4004-398c-4f3f-b777-bc3188c8300a",
+      "version_id": "c2c5cd86-2b62-4102-8bf3-62d6c0e4c0e8",
       "percentage": 100
     }
   ],
-  "content_etag": "e2baaf53b8b0965f810bdae7aeff58f6101f9691faf7f61056b3d072563a9c83",
+  "content_etag": "ea922bb76d86a2f37649b814d5da9d9d8f81e410fc311ddaf69e3f47c2dc50cc",
   "main_module": "index.js",
   "compatibility_date": "2026-01-01",
   "compatibility_flags": [],
@@ -141,8 +141,9 @@
     }
   ],
   "annotations": {
-    "workers/message": "v75 + run_worker_first /assets/shop.js, /llms.txt (25.11.2026)",
-    "workers/triggered_by": "create_version_api"
+    "workers/message": "deploy_code.mjs from git",
+    "workers/tag": "git",
+    "workers/triggered_by": "version_upload"
   },
   "tags": [],
   "tail_consumers": [],
@@ -246,7 +247,7 @@
     "base_path": "/"
   },
   "version_metadata": {
-    "created_on": "2026-11-25T08:49:19.604646Z",
+    "created_on": "2026-11-25T16:28:36.811318Z",
     "source": "api",
     "has_preview": true
   },
