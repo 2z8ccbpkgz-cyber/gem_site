@@ -1,0 +1,377 @@
+{
+  "script": "gemstone-public",
+  "account_id": "5c0e15200a46984774052066eab98aae",
+  "active_version_id": "082e4004-398c-4f3f-b777-bc3188c8300a",
+  "active_version_number": 76,
+  "deployment_strategy": "percentage",
+  "deployment_versions": [
+    {
+      "version_id": "082e4004-398c-4f3f-b777-bc3188c8300a",
+      "percentage": 100
+    }
+  ],
+  "content_etag": "e2baaf53b8b0965f810bdae7aeff58f6101f9691faf7f61056b3d072563a9c83",
+  "main_module": "index.js",
+  "compatibility_date": "2026-01-01",
+  "compatibility_flags": [],
+  "usage_model": "standard",
+  "placement": {},
+  "bindings": [
+    {
+      "name": "AI",
+      "project": "<catalog>",
+      "type": "ai"
+    },
+    {
+      "name": "ANTHROPIC_API_KEY",
+      "type": "secret_text"
+    },
+    {
+      "database_id": "00bf5d27-c9e8-4b9a-a190-f188da90a41a",
+      "id": "00bf5d27-c9e8-4b9a-a190-f188da90a41a",
+      "name": "APP_DB",
+      "type": "d1"
+    },
+    {
+      "name": "ASSETS",
+      "type": "assets"
+    },
+    {
+      "name": "AUTH_PEPPER",
+      "type": "secret_text"
+    },
+    {
+      "environment": "production",
+      "name": "CRM",
+      "service": "astrogems-sales",
+      "type": "service"
+    },
+    {
+      "database_id": "cbc247bb-fb01-4d86-b94e-3816f05cd7f2",
+      "id": "cbc247bb-fb01-4d86-b94e-3816f05cd7f2",
+      "name": "CRM_DB",
+      "type": "d1"
+    },
+    {
+      "name": "ELEVENLABS_API_KEY",
+      "type": "secret_text"
+    },
+    {
+      "name": "EMAIL",
+      "type": "send_email"
+    },
+    {
+      "database_id": "db9c1ac5-7f91-47e3-a973-5e3caea04fbf",
+      "id": "db9c1ac5-7f91-47e3-a973-5e3caea04fbf",
+      "name": "ENGINE_DB",
+      "type": "d1"
+    },
+    {
+      "name": "JOURNAL_HOME",
+      "text": "1",
+      "type": "plain_text"
+    },
+    {
+      "name": "MAIL_FROM",
+      "text": "noreply@gemstone.md",
+      "type": "plain_text"
+    },
+    {
+      "bucket_name": "gemstone-media",
+      "name": "MEDIA",
+      "type": "r2_bucket"
+    },
+    {
+      "name": "PAYNET_CALLBACK_SECRET",
+      "type": "secret_text"
+    },
+    {
+      "name": "PAYNET_MERCHANT_CODE",
+      "type": "secret_text"
+    },
+    {
+      "name": "PAYNET_MERCHANT_PASSWORD",
+      "type": "secret_text"
+    },
+    {
+      "name": "PAYNET_MERCHANT_USER",
+      "type": "secret_text"
+    },
+    {
+      "name": "PAYNET_NOTIFICATION_KEY",
+      "type": "secret_text"
+    },
+    {
+      "name": "PAYNET_SALE_AREA",
+      "type": "secret_text"
+    },
+    {
+      "name": "PAYNET_SECRET_KEY",
+      "type": "secret_text"
+    },
+    {
+      "name": "SALES_BOT_TOKEN",
+      "type": "secret_text"
+    },
+    {
+      "name": "SALES_CHAT_ID",
+      "type": "secret_text"
+    },
+    {
+      "name": "SITEGEN_SECRET",
+      "type": "secret_text"
+    },
+    {
+      "name": "TG_BOT_TOKEN",
+      "type": "secret_text"
+    },
+    {
+      "name": "TG_LOGIN_BOT",
+      "text": "gemstone_md_bot",
+      "type": "plain_text"
+    },
+    {
+      "name": "WATA_ACCESS_TOKEN",
+      "type": "secret_text"
+    },
+    {
+      "name": "WATA_ENABLED",
+      "text": "1",
+      "type": "plain_text"
+    }
+  ],
+  "annotations": {
+    "workers/message": "v75 + run_worker_first /assets/shop.js, /llms.txt (25.11.2026)",
+    "workers/triggered_by": "create_version_api"
+  },
+  "tags": [],
+  "tail_consumers": [],
+  "logpush": false,
+  "assets_config": {
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    "static_routing": {
+      "user_worker": [
+        "/api/*",
+        "/p/*",
+        "/ro/p/*",
+        "/en/p/*",
+        "/sitemap.xml",
+        "/journal",
+        "/journal/*",
+        "/ro/journal",
+        "/ro/journal/*",
+        "/en/journal",
+        "/en/journal/*",
+        "/media/*",
+        "/sitemap-video.xml",
+        "/",
+        "/ro/",
+        "/en/",
+        "/kabinet",
+        "/kabinet/*",
+        "/ro/kabinet",
+        "/ro/kabinet/*",
+        "/en/kabinet",
+        "/en/kabinet/*",
+        "/stones",
+        "/stones/*",
+        "/ro/stones",
+        "/ro/stones/*",
+        "/en/stones",
+        "/en/stones/*",
+        "/birthday",
+        "/birthday/*",
+        "/ro/birthday",
+        "/ro/birthday/*",
+        "/en/birthday",
+        "/en/birthday/*",
+        "/zodiac",
+        "/zodiac/*",
+        "/ro/zodiac",
+        "/ro/zodiac/*",
+        "/en/zodiac",
+        "/en/zodiac/*",
+        "/sitemap-seo.xml",
+        "/assets/shop.js",
+        "/llms.txt"
+      ]
+    },
+    "serve_directly": true,
+    "raw_run_worker_first": [
+      "/api/*",
+      "/p/*",
+      "/ro/p/*",
+      "/en/p/*",
+      "/sitemap.xml",
+      "/journal",
+      "/journal/*",
+      "/ro/journal",
+      "/ro/journal/*",
+      "/en/journal",
+      "/en/journal/*",
+      "/media/*",
+      "/sitemap-video.xml",
+      "/",
+      "/ro/",
+      "/en/",
+      "/kabinet",
+      "/kabinet/*",
+      "/ro/kabinet",
+      "/ro/kabinet/*",
+      "/en/kabinet",
+      "/en/kabinet/*",
+      "/stones",
+      "/stones/*",
+      "/ro/stones",
+      "/ro/stones/*",
+      "/en/stones",
+      "/en/stones/*",
+      "/birthday",
+      "/birthday/*",
+      "/ro/birthday",
+      "/ro/birthday/*",
+      "/en/birthday",
+      "/en/birthday/*",
+      "/zodiac",
+      "/zodiac/*",
+      "/ro/zodiac",
+      "/ro/zodiac/*",
+      "/en/zodiac",
+      "/en/zodiac/*",
+      "/sitemap-seo.xml",
+      "/assets/shop.js",
+      "/llms.txt"
+    ],
+    "base_path": "/"
+  },
+  "version_metadata": {
+    "created_on": "2026-11-25T08:49:19.604646Z",
+    "source": "api",
+    "has_preview": true
+  },
+  "version_bindings": [
+    {
+      "name": "AI",
+      "project": "<catalog>",
+      "type": "ai"
+    },
+    {
+      "name": "ANTHROPIC_API_KEY",
+      "type": "secret_text"
+    },
+    {
+      "database_id": "00bf5d27-c9e8-4b9a-a190-f188da90a41a",
+      "id": "00bf5d27-c9e8-4b9a-a190-f188da90a41a",
+      "name": "APP_DB",
+      "type": "d1"
+    },
+    {
+      "name": "ASSETS",
+      "type": "assets"
+    },
+    {
+      "name": "AUTH_PEPPER",
+      "type": "secret_text"
+    },
+    {
+      "environment": "production",
+      "name": "CRM",
+      "service": "astrogems-sales",
+      "type": "service"
+    },
+    {
+      "database_id": "cbc247bb-fb01-4d86-b94e-3816f05cd7f2",
+      "id": "cbc247bb-fb01-4d86-b94e-3816f05cd7f2",
+      "name": "CRM_DB",
+      "type": "d1"
+    },
+    {
+      "name": "ELEVENLABS_API_KEY",
+      "type": "secret_text"
+    },
+    {
+      "name": "EMAIL",
+      "type": "send_email"
+    },
+    {
+      "database_id": "db9c1ac5-7f91-47e3-a973-5e3caea04fbf",
+      "id": "db9c1ac5-7f91-47e3-a973-5e3caea04fbf",
+      "name": "ENGINE_DB",
+      "type": "d1"
+    },
+    {
+      "name": "JOURNAL_HOME",
+      "text": "1",
+      "type": "plain_text"
+    },
+    {
+      "name": "MAIL_FROM",
+      "text": "noreply@gemstone.md",
+      "type": "plain_text"
+    },
+    {
+      "bucket_name": "gemstone-media",
+      "name": "MEDIA",
+      "type": "r2_bucket"
+    },
+    {
+      "name": "PAYNET_CALLBACK_SECRET",
+      "type": "secret_text"
+    },
+    {
+      "name": "PAYNET_MERCHANT_CODE",
+      "type": "secret_text"
+    },
+    {
+      "name": "PAYNET_MERCHANT_PASSWORD",
+      "type": "secret_text"
+    },
+    {
+      "name": "PAYNET_MERCHANT_USER",
+      "type": "secret_text"
+    },
+    {
+      "name": "PAYNET_NOTIFICATION_KEY",
+      "type": "secret_text"
+    },
+    {
+      "name": "PAYNET_SALE_AREA",
+      "type": "secret_text"
+    },
+    {
+      "name": "PAYNET_SECRET_KEY",
+      "type": "secret_text"
+    },
+    {
+      "name": "SALES_BOT_TOKEN",
+      "type": "secret_text"
+    },
+    {
+      "name": "SALES_CHAT_ID",
+      "type": "secret_text"
+    },
+    {
+      "name": "SITEGEN_SECRET",
+      "type": "secret_text"
+    },
+    {
+      "name": "TG_BOT_TOKEN",
+      "type": "secret_text"
+    },
+    {
+      "name": "TG_LOGIN_BOT",
+      "text": "gemstone_md_bot",
+      "type": "plain_text"
+    },
+    {
+      "name": "WATA_ACCESS_TOKEN",
+      "type": "secret_text"
+    },
+    {
+      "name": "WATA_ENABLED",
+      "text": "1",
+      "type": "plain_text"
+    }
+  ]
+}

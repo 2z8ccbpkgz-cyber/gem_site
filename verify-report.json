@@ -1,0 +1,11 @@
+{
+ "files": 317,
+ "already_stored": 317,
+ "not_stored": 0,
+ "not_stored_paths": [],
+ "drift": [],
+ "worker_served_in_asset_store": {
+  "/assets/shop.js": false,
+  "/llms.txt": false
+ }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "gemstone-site",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "pull": "node scripts/pull_live.mjs",
+    "crawl": "node scripts/crawl.mjs",
+    "verify": "node scripts/verify_assets.mjs",
+    "deploy:code": "node scripts/deploy_code.mjs"
+  },
+  "dependencies": { "@noble/hashes": "^1.8.0" }
+}

@@ -1,0 +1,944 @@
+/* gemstone.md — каталог, валюта, корзина, отложенное (v2 · 30.09.2026)
+   Каталог приходит с /api/catalog (живая Google-таблица CRM, обновление ≤ 2 мин).
+   Корзина и «отложенное» хранятся в браузере посетителя (localStorage). */
+(function () {
+  'use strict';
+  var LANG = (document.documentElement.lang || 'ru').slice(0, 2);
+  var IS_SHOP = !!document.getElementById('shop');
+
+  var T = {
+    ru: {
+      MDL: 'лей', cart: 'Корзина', wish: 'Отложено', add: 'В корзину', inCart: 'В корзине', wishAdd: 'Отложить', wishDel: 'Убрать из отложенного',
+      emptyCart: 'Корзина пуста. Выберите украшение в каталоге.', emptyWish: 'Здесь будут украшения, которые вы отложили.',
+      toCatalog: 'Перейти в каталог', total: 'Итого', checkout: 'Оформить заказ', remove: 'Убрать', moveToCart: 'В корзину',
+      name: 'Как вас зовут', contact: 'Телефон или Telegram', contactHint: 'с кодом страны', method: 'Как удобнее связаться', country: 'Страна / город',
+      wrist: 'Обхват запястья, см', wristHint: 'для браслетов — подберём размер', comment: 'Комментарий', optional: 'необязательно',
+      send: 'Отправить заказ', sending: 'Отправляем…', back: '← К корзине',
+      payNote: 'Оплата — после того, как менеджер подтвердит наличие и размер. Цены — по каталогу шоурума.',
+      okTitle: 'Заказ получен.', okText: 'Менеджер напишет в течение дня: подтвердит наличие, размер и способ оплаты и доставки.',
+      err: 'Не удалось отправить. Попробуйте ещё раз или напишите нам в Instagram.', need: 'Укажите имя и контакт.',
+      addedToast: 'Добавлено в корзину', wishToast: 'Отложено', search: 'Поиск: камень, изделие или артикул', all: 'Все',
+      sort: 'Сортировка', sDef: 'По порядку', sAsc: 'Сначала дешевле', sDesc: 'Сначала дороже', sName: 'По названию',
+      found: function (n) { return n + ' ' + plural(n, ['позиция', 'позиции', 'позиций']); },
+      more: 'Показать ещё', nothing: 'Ничего не нашлось. Попробуйте другое слово — например, «аметист» или «кольцо».',
+      loadErr: 'Каталог сейчас не загрузился. Обновите страницу через минуту или напишите нам — подберём вручную.',
+      bead: 'бусина', size: 'размер', close: 'Закрыть', currency: 'Валюта', lang: 'Язык', qty: 'Количество', catalogCta: 'Весь каталог', withStone: 'Украшения с этим камнем', allWith: function (n) { return 'Все ' + n + ' →'; }, noneWith: 'Сейчас в каталоге нет готовых украшений с этим камнем — соберём под заказ, напишите нам.',
+      cats: { 'Браслеты': 'Браслеты', 'Чокеры': 'Чокеры', 'Кольца': 'Кольца', 'Колье': 'Колье', 'Серьги': 'Серьги', 'Другое': 'Другое' },
+      one: { 'Браслеты': 'Браслет', 'Чокеры': 'Чокер', 'Кольца': 'Кольцо', 'Колье': 'Колье', 'Серьги': 'Серьги', 'Другое': 'Минерал' },
+      view: 'Посмотреть изделие', viewShort: 'Смотреть', photo: 'Фото', prevL: 'Назад', nextL: 'Вперёд', delivery: 'Доставка', goods: 'Изделия', free: 'бесплатно', tbd: 'по согласованию', aboutStone: 'О камне', comp: 'Состав', capHint: 'Нажмите — подробнее', ask: 'Уточнить в Instagram', sizeL: 'Размер', codeL: 'Артикул',
+      noteMDL: 'Цена без доставки. Доставку и оплату подтвердит менеджер.',
+      noteDel: function (place, amount, n) { return 'Цена без доставки. Доставка ' + place + ' — ' + amount + ', бесплатно от ' + n + '.'; }, toEU: 'в Европу', toRU: 'в Россию', toMD: 'по Молдове', intentL: 'Намерение', stonesL: 'Камни', delYes: 'Нужна доставка', delNo: 'Самовывоз из шоурума', pickupV: 'самовывоз',
+      resFor: function (q) { return 'Результаты по запросу «' + q + '»'; }, reset: 'Сбросить', clearQ: 'Очистить поиск', tryThese: 'Попробуйте:', writeUs: 'Не нашли нужное? Напишите нам — соберём под заказ.', stat: function (n) { return n + ' ' + plural(n, ['изделие', 'изделия', 'изделий']) + ' в каталоге'; }, of: 'из', shown: 'Показано', popular: ['аметист', 'лабрадорит', 'розовый кварц', 'лунный камень', 'агат', 'кольцо'],
+      methods: ['Telegram', 'WhatsApp', 'Звонок', 'Viber']
+    },
+    ro: {
+      MDL: 'lei', cart: 'Coș', wish: 'Salvate', add: 'În coș', inCart: 'În coș ✓', wishAdd: 'Salvează', wishDel: 'Elimină din salvate',
+      emptyCart: 'Coșul e gol. Alegeți o bijuterie din catalog.', emptyWish: 'Aici vor apărea bijuteriile salvate.',
+      toCatalog: 'Spre catalog', total: 'Total', checkout: 'Plasează comanda', remove: 'Elimină', moveToCart: 'În coș',
+      name: 'Cum vă numiți', contact: 'Telefon sau Telegram', contactHint: 'cu prefixul țării', method: 'Cum vă contactăm', country: 'Țara / orașul',
+      wrist: 'Circumferința încheieturii, cm', wristHint: 'pentru brățări — potrivim mărimea', comment: 'Comentariu', optional: 'opțional',
+      send: 'Trimite comanda', sending: 'Se trimite…', back: '← Înapoi la coș',
+      payNote: 'Plata — după ce managerul confirmă disponibilitatea și mărimea. Prețuri conform catalogului showroom-ului.',
+      okTitle: 'Comanda a fost primită.', okText: 'Managerul vă scrie în cursul zilei: confirmă disponibilitatea, mărimea, plata și livrarea.',
+      err: 'Nu s-a putut trimite. Încercați din nou sau scrieți-ne pe Instagram.', need: 'Indicați numele și contactul.',
+      addedToast: 'Adăugat în coș', wishToast: 'Salvat', search: 'Căutare: piatră, bijuterie sau cod', all: 'Toate',
+      sort: 'Sortare', sDef: 'Implicit', sAsc: 'Preț crescător', sDesc: 'Preț descrescător', sName: 'După nume',
+      found: function (n) { return n + ' ' + (n === 1 ? 'poziție' : 'poziții'); },
+      more: 'Arată mai multe', nothing: 'Nu am găsit nimic. Încercați alt cuvânt — de exemplu „аметист” sau „inel”.',
+      loadErr: 'Catalogul nu s-a încărcat. Reîncărcați pagina peste un minut sau scrieți-ne.',
+      bead: 'mărgea', size: 'mărime', close: 'Închide', currency: 'Valuta', lang: 'Limba', qty: 'Cantitate', catalogCta: 'Tot catalogul', withStone: 'Bijuterii cu această piatră', allWith: function (n) { return 'Toate ' + n + ' →'; }, noneWith: 'Acum nu avem bijuterii gata cu această piatră — o facem la comandă, scrieți-ne.',
+      cats: { 'Браслеты': 'Brățări', 'Чокеры': 'Chokere', 'Кольца': 'Inele', 'Колье': 'Coliere', 'Серьги': 'Cercei', 'Другое': 'Altele' },
+      one: { 'Браслеты': 'Brățară', 'Чокеры': 'Choker', 'Кольца': 'Inel', 'Колье': 'Colier', 'Серьги': 'Cercei', 'Другое': 'Mineral' },
+      view: 'Vezi bijuteria', viewShort: 'Vezi', photo: 'Foto', prevL: 'Înapoi', nextL: 'Înainte', delivery: 'Livrare', goods: 'Bijuterii', free: 'gratuită', tbd: 'la confirmare', aboutStone: 'Despre piatră', comp: 'Compoziție', capHint: 'Apăsați — detalii', ask: 'Întreabă pe Instagram', sizeL: 'Mărime', codeL: 'Cod',
+      noteMDL: 'Preț fără livrare. Livrarea și plata le confirmă managerul.',
+      noteDel: function (place, amount, n) { return 'Preț fără livrare. Livrarea ' + place + ' — ' + amount + ', gratuită de la ' + n + '.'; }, toEU: 'în Europa', toRU: 'în Rusia', toMD: 'în Moldova', intentL: 'Intenție', stonesL: 'Pietre', delYes: 'Am nevoie de livrare', delNo: 'Ridicare din showroom', pickupV: 'ridicare personală',
+      resFor: function (q) { return 'Rezultate pentru „' + q + '”'; }, reset: 'Resetează', clearQ: 'Șterge căutarea', tryThese: 'Încercați:', writeUs: 'Nu ați găsit ce căutați? Scrieți-ne — facem la comandă.', stat: function (n) { return n + ' ' + (n === 1 ? 'bijuterie' : 'bijuterii') + ' în catalog'; }, of: 'din', shown: 'Afișate', popular: ['ametist', 'labradorit', 'cuarț roz', 'piatra lunii', 'agat', 'inel'],
+      methods: ['Telegram', 'WhatsApp', 'Apel', 'Viber']
+    },
+    en: {
+      MDL: 'MDL', cart: 'Cart', wish: 'Saved', add: 'Add to cart', inCart: 'In cart ✓', wishAdd: 'Save', wishDel: 'Remove from saved',
+      emptyCart: 'Your cart is empty. Pick a piece in the catalogue.', emptyWish: 'Pieces you save will appear here.',
+      toCatalog: 'Open catalogue', total: 'Total', checkout: 'Place order', remove: 'Remove', moveToCart: 'Add to cart',
+      name: 'Your name', contact: 'Phone or Telegram', contactHint: 'with country code', method: 'Preferred contact', country: 'Country / city',
+      wrist: 'Wrist size, cm', wristHint: 'for bracelets — we will fit the size', comment: 'Comment', optional: 'optional',
+      send: 'Send order', sending: 'Sending…', back: '← Back to cart',
+      payNote: 'Payment — after our manager confirms availability and size. Prices follow the showroom catalogue.',
+      okTitle: 'Order received.', okText: 'Our manager will message you within the day to confirm availability, size, payment and delivery.',
+      err: 'Could not send. Please try again or message us on Instagram.', need: 'Please enter your name and contact.',
+      addedToast: 'Added to cart', wishToast: 'Saved', search: 'Search: stone, piece or code', all: 'All',
+      sort: 'Sort', sDef: 'Default', sAsc: 'Price: low to high', sDesc: 'Price: high to low', sName: 'By name',
+      found: function (n) { return n + ' ' + (n === 1 ? 'item' : 'items'); },
+      more: 'Show more', nothing: 'Nothing found. Try another word — e.g. “аметист” or “ring”.',
+      loadErr: 'The catalogue did not load. Refresh in a minute or message us — we will help manually.',
+      bead: 'bead', size: 'size', close: 'Close', currency: 'Currency', lang: 'Language', qty: 'Quantity', catalogCta: 'Full catalogue', withStone: 'Jewellery with this stone', allWith: function (n) { return 'All ' + n + ' →'; }, noneWith: 'No ready pieces with this stone right now — we can make one to order, message us.',
+      cats: { 'Браслеты': 'Bracelets', 'Чокеры': 'Chokers', 'Кольца': 'Rings', 'Колье': 'Necklaces', 'Серьги': 'Earrings', 'Другое': 'Other' },
+      one: { 'Браслеты': 'Bracelet', 'Чокеры': 'Choker', 'Кольца': 'Ring', 'Колье': 'Necklace', 'Серьги': 'Earrings', 'Другое': 'Mineral' },
+      view: 'View piece', viewShort: 'View', photo: 'Photo', prevL: 'Previous', nextL: 'Next', delivery: 'Delivery', goods: 'Pieces', free: 'free', tbd: 'to be confirmed', aboutStone: 'About the stone', comp: 'Composition', capHint: 'Click for details', ask: 'Ask on Instagram', sizeL: 'Size', codeL: 'Code',
+      noteMDL: 'Price excludes delivery. Delivery and payment are confirmed by a manager.',
+      noteDel: function (place, amount, n) { return 'Price excludes delivery. Delivery ' + place + ' — ' + amount + ', free from ' + n + '.'; }, toEU: 'to Europe', toRU: 'to Russia', toMD: 'within Moldova', intentL: 'Intention', stonesL: 'Stones', delYes: 'Deliver to me', delNo: 'Pick up at the showroom', pickupV: 'pickup',
+      resFor: function (q) { return 'Results for “' + q + '”'; }, reset: 'Reset', clearQ: 'Clear search', tryThese: 'Try:', writeUs: 'Can’t find it? Message us — we can make it to order.', stat: function (n) { return n + ' ' + (n === 1 ? 'piece' : 'pieces') + ' in the catalogue'; }, of: 'of', shown: 'Showing', popular: ['amethyst', 'labradorite', 'rose quartz', 'moonstone', 'agate', 'ring'],
+      methods: ['Telegram', 'WhatsApp', 'Call', 'Viber']
+    }
+  }[LANG] || null;
+  if (!T) return;
+  var METHOD_CRM = ['Telegram', 'WhatsApp', 'Звонок', 'Viber']; // в CRM — всегда по-русски
+
+  function plural(n, f) { var a = n % 10, b = n % 100; return f[(a === 1 && b !== 11) ? 0 : (a >= 2 && a <= 4 && (b < 10 || b >= 20)) ? 1 : 2]; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function store(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || 'null'); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
+  function norm(s) { return String(s || '').toLowerCase().replace(/ё/g, 'е').replace(/["«»“”]/g, ''); }
+  var QUO = LANG === 'ro' ? ['„', '”'] : LANG === 'en' ? ['“', '”'] : ['«', '»'];
+  function nice(n) { return String(n).replace(/""/g, '').replace(/"\s*([^"]+?)\s*"/g, QUO[0] + '$1' + QUO[1]).replace(/"\s*$/, '').replace(/\s+/g, ' ').trim(); }
+  /* названия на RO/EN приходят из /api/catalog (it.t): таблица → словарь → правила → ИИ — всё делает воркер, на сайте ничего вручную не ведётся */
+  function nk(s) { return String(s).toLowerCase().replace(/ё/g, 'е').replace(/\s*"\s*/g, '"').replace(/\s+/g, ' ').trim(); }
+  var RU_FIX = [[/Внутненн/g, 'Внутренн'], [/балланс/gi, 'баланс'], [/Аппатит/g, 'Апатит'], [/аппатит/g, 'апатит']]; // опечатки таблицы — только в показе, артикулы и логика не меняются
+  function lname(it) {
+    if (LANG === 'ru') { var n = it.n; RU_FIX.forEach(function (f) { n = n.replace(f[0], f[1]); }); return n; }
+    return (it.t && it.t[LANG]) || it.n;
+  }
+  function sizeStr(s) { return LANG === 'ru' || !s ? (s || '') : String(s).replace(/мм/g, 'mm').replace(/см/g, 'cm'); }
+
+  /* ── валюта ── */
+  var CURS = ['MDL', 'EUR', 'RUB'];
+  function guessCur() {
+    var tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
+    if (/Chisinau|Tiraspol/.test(tz)) return 'MDL';
+    if (/^Europe\/(Moscow|Samara|Volgograd|Kirov|Astrakhan|Saratov|Ulyanovsk|Kaliningrad|Simferopol)|^Asia\/(Yekaterinburg|Omsk|Novosibirsk|Barnaul|Tomsk|Novokuznetsk|Krasnoyarsk|Irkutsk|Chita|Yakutsk|Khandyga|Vladivostok|Ust-Nera|Magadan|Sakhalin|Srednekolymsk|Kamchatka|Anadyr)/.test(tz)) return 'RUB';
+    return LANG === 'ru' ? 'MDL' : 'EUR';
+  }
+  var CUR = store('gs_cur'); if (CURS.indexOf(CUR) < 0) CUR = guessCur();
+  function money(v, cur) {
+    var s = Number(v).toLocaleString('ru-RU').replace(/ /g, ' ');
+    cur = cur || CUR;
+    return cur === 'EUR' ? s + ' €' : cur === 'RUB' ? s + ' ₽' : s + ' ' + T.MDL;
+  }
+  function curBtnLabel(c) { return c === 'MDL' ? (LANG === 'ru' ? 'лей' : 'lei') : c === 'EUR' ? '€' : '₽'; }
+
+  /* ── корзина / отложенное ── */
+  var cart = store('gs_cart'); if (!Array.isArray(cart)) cart = [];
+  var DELIV = store('gs_deliv') === 'pickup' ? 'pickup' : 'delivery'; // по умолчанию — нужна доставка
+  function delivPlace() { return CUR === 'EUR' ? T.toEU : CUR === 'RUB' ? T.toRU : T.toMD; }
+  var wish = store('gs_wish'); if (!Array.isArray(wish)) wish = [];
+  function saveCart() { store('gs_cart', cart); refreshCounts(); }
+  function saveWish() { store('gs_wish', wish); refreshCounts(); }
+  function inCart(id) { for (var i = 0; i < cart.length; i++) if (cart[i].id === id) return cart[i]; return null; }
+  function addToCart(id) { var c = inCart(id); if (c) c.q = Math.min(20, c.q + 1); else cart.push({ id: id, q: 1 }); saveCart(); toast(T.addedToast); rerender(); }
+  function toggleWish(id) { var i = wish.indexOf(id); if (i >= 0) wish.splice(i, 1); else { wish.push(id); toast(T.wishToast); } saveWish(); rerender(); }
+
+  /* ── каталог ── */
+  var CAT = null, BYID = {}, catWaiters = [], lastCheck = 0, checking = false;
+  function applyCat(d) {
+    CAT = d; INT_CACHE = {}; BYID = {}; d.items.forEach(function (it) { BYID[it.id] = it; });
+    // из корзины убрать позиции, которых больше нет в каталоге
+    var before = cart.length; cart = cart.filter(function (c) { return BYID[c.id]; }); if (cart.length !== before) saveCart();
+    wish = wish.filter(function (id) { return BYID[id]; }); saveWish();
+  }
+  function loadCatalog(cb) {
+    if (CAT) return cb(CAT);
+    catWaiters.push(cb);
+    if (catWaiters.length > 1) return;
+    var phP = Promise.all([loadPhotos(), loadCaps()]);
+    fetch('/api/catalog', { headers: { accept: 'application/json' }, cache: 'no-cache' })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (d) {
+        if (!d || !d.ok || !Array.isArray(d.items)) throw new Error('bad');
+        applyCat(d); lastCheck = Date.now();
+      })
+      .catch(function () { CAT = { ok: false, items: [], categories: [] }; })
+      .then(function () { return phP; })
+      .then(function () { var w = catWaiters; catWaiters = []; w.forEach(function (f) { f(CAT); }); try { document.dispatchEvent(new CustomEvent('gs:catalog')); } catch (e) {} });
+  }
+  /* Новые позиции в таблице видны сразу при поиске: при фокусе/вводе в поиске, возврате на вкладку и выборе камня по дате
+     каталог перепроверяется (сервер отвечает 304, если ничего не менялось). Не чаще раза в 15 секунд. */
+  function refreshCatalog(force) {
+    if (checking || !CAT || !CAT.ok) return;
+    if (!force && Date.now() - lastCheck < 15000) return;
+    checking = true;
+    fetch('/api/catalog', { headers: { accept: 'application/json' }, cache: 'no-cache' })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (d) {
+        lastCheck = Date.now();
+        if (d && d.ok && Array.isArray(d.items) && d.v && d.v !== CAT.v) { applyCat(d); rerender(); }
+      })
+      .catch(function () { lastCheck = Date.now(); })
+      .then(function () { checking = false; });
+  }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) refreshCatalog(); });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) refreshCatalog(true); });
+
+  /* ── иконки ── */
+  var I_BAG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1.2 12H6.2L5 8Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
+  var I_HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.3a4.3 4.3 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+
+  /* ── верхняя панель: язык · валюта · отложено · корзина (флаги; на телефоне — компактный выпадающий список) ── */
+  var CUR_FLAG = { MDL: 'md', EUR: 'eu', RUB: 'ru' };
+  var CUR_NAME = { ru: { MDL: 'Молдавский лей', EUR: 'Евро', RUB: 'Российский рубль' }, ro: { MDL: 'Leu moldovenesc', EUR: 'Euro', RUB: 'Rublă rusească' }, en: { MDL: 'Moldovan leu', EUR: 'Euro', RUB: 'Russian ruble' } }[LANG] || { MDL: 'MDL', EUR: 'EUR', RUB: 'RUB' };
+  var I_CHEV = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function ddWrap(group, label) { // пункты уходят в панель; снаружи остаётся кнопка с активным значением
+    var panel = document.createElement('div'); panel.className = 'dd__p';
+    while (group.firstChild) panel.appendChild(group.firstChild);
+    var t = document.createElement('button'); t.type = 'button'; t.className = 'dd__t'; t.setAttribute('aria-haspopup', 'true'); t.setAttribute('aria-expanded', 'false'); t.setAttribute('aria-label', label);
+    group.appendChild(t); group.appendChild(panel); group.classList.add('dd'); ddSync(group);
+  }
+  function ddSync(group) {
+    var on = group.querySelector('.dd__p > .on') || group.querySelector('.dd__p > *'), t = group.querySelector('.dd__t'); if (!on || !t) return;
+    var fl = on.querySelector('.fl'), c = on.querySelector('.dd__c');
+    t.innerHTML = '<i class="' + (fl ? fl.className : 'fl') + '" aria-hidden="true"></i><span>' + (c ? c.textContent : '') + '</span>' + I_CHEV;
+  }
+  function ddClose() { document.querySelectorAll('.tb-group.open').forEach(function (x) { x.classList.remove('open'); var t = x.querySelector('.dd__t'); if (t) t.setAttribute('aria-expanded', 'false'); }); }
+  var top = document.querySelector('.langsw-top');
+  if (top) {
+    var lang = top.querySelector('.langsw');
+    if (lang) { lang.classList.add('tb-group'); lang.setAttribute('aria-label', T.lang); }
+    var cs = document.createElement('div');
+    cs.className = 'tb-group cursw'; cs.setAttribute('role', 'group'); cs.setAttribute('aria-label', T.currency);
+    cs.innerHTML = CURS.map(function (c) { return '<button type="button" data-cur="' + c + '" title="' + esc(CUR_NAME[c]) + '"><i class="fl fl--' + CUR_FLAG[c] + '" aria-hidden="true"></i><span class="dd__n">' + esc(CUR_NAME[c]) + '</span><span class="dd__c">' + c + '</span></button>'; }).join('');
+    var icons = document.createElement('div');
+    icons.className = 'tb-icons';
+    icons.innerHTML = '<button type="button" class="tb-ico" data-open="wish" aria-label="' + esc(T.wish) + '">' + I_HEART + '<b class="tb-n" data-n="wish"></b></button>' +
+      '<button type="button" class="tb-ico" data-open="cart" aria-label="' + esc(T.cart) + '">' + I_BAG + '<b class="tb-n" data-n="cart"></b></button>';
+    top.appendChild(cs); top.appendChild(icons);
+    top.classList.add('tb');
+    if (IS_SHOP) top.classList.add('tb--pinned');
+    if (lang) ddWrap(lang, T.lang); ddWrap(cs, T.currency);
+    // на телефоне группа — кнопка с флагом; тап раскрывает список
+    top.addEventListener('click', function (e) {
+      var t = e.target.closest('.dd__t'); if (!t) return;
+      var g = t.closest('.tb-group'), was = g.classList.contains('open');
+      ddClose();
+      if (!was) { g.classList.add('open'); t.setAttribute('aria-expanded', 'true'); }
+    });
+    document.addEventListener('click', function (e) { if (!e.target.closest('.tb-group')) ddClose(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') ddClose(); });
+    window.addEventListener('scroll', ddClose, { passive: true });
+    cs.addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-cur]'); if (!b) return;
+      CUR = b.getAttribute('data-cur'); store('gs_cur', CUR); ddClose(); markCur(); rerender();
+    });
+    icons.addEventListener('click', function (e) { var b = e.target.closest('[data-open]'); if (b) openDrawer(b.getAttribute('data-open')); });
+  }
+  function markCur() {
+    document.querySelectorAll('.cursw .dd__p > button').forEach(function (b) { var on = b.getAttribute('data-cur') === CUR; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    var cg = document.querySelector('.cursw'); if (cg) ddSync(cg);
+  }
+  function refreshCounts() {
+    var n = 0; cart.forEach(function (c) { n += c.q; });
+    document.querySelectorAll('[data-n="cart"]').forEach(function (el) { el.textContent = n || ''; el.hidden = !n; });
+    document.querySelectorAll('[data-n="wish"]').forEach(function (el) { el.textContent = wish.length || ''; el.hidden = !wish.length; });
+  }
+
+  /* ── тост ── */
+  var toastEl = document.createElement('div'); toastEl.className = 'gs-toast'; toastEl.setAttribute('role', 'status'); document.body.appendChild(toastEl);
+  var toastT;
+  function toast(msg) { toastEl.textContent = msg; toastEl.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function () { toastEl.classList.remove('on'); }, 1800); }
+
+  /* ── выезжающая панель ── */
+  var dr = document.createElement('div');
+  dr.className = 'drawer'; dr.setAttribute('aria-hidden', 'true');
+  dr.innerHTML = '<div class="drawer__bg" data-x></div><aside class="drawer__p" role="dialog" aria-modal="true" aria-label="' + esc(T.cart) + '">' +
+    '<div class="drawer__h"><div class="drawer__tabs"><button type="button" data-tab="cart">' + esc(T.cart) + ' <b data-n="cart"></b></button><button type="button" data-tab="wish">' + esc(T.wish) + ' <b data-n="wish"></b></button></div>' +
+    '<button type="button" class="drawer__x" data-x aria-label="' + esc(T.close) + '">×</button></div><div class="drawer__b"></div></aside>';
+  document.body.appendChild(dr);
+  var drBody = dr.querySelector('.drawer__b'), TAB = 'cart', STEP = 'list';
+  function openDrawer(tab) { TAB = tab || 'cart'; STEP = 'list'; dr.classList.add('on'); dr.setAttribute('aria-hidden', 'false'); document.documentElement.classList.add('noscroll'); loadCatalog(renderDrawer); renderDrawer(); }
+  function closeDrawer() { dr.classList.remove('on'); dr.setAttribute('aria-hidden', 'true'); document.documentElement.classList.remove('noscroll'); }
+  dr.addEventListener('click', function (e) {
+    if (e.target.closest('[data-x]')) return closeDrawer();
+    var t = e.target.closest('[data-tab]'); if (t) { TAB = t.getAttribute('data-tab'); STEP = 'list'; return renderDrawer(); }
+    var a = e.target.closest('[data-act]'); if (!a) return;
+    var id = a.getAttribute('data-id'), act = a.getAttribute('data-act'), c = id && inCart(id);
+    if (act === 'inc' && c) { c.q = Math.min(20, c.q + 1); saveCart(); }
+    if (act === 'dec' && c) { c.q -= 1; if (c.q < 1) cart.splice(cart.indexOf(c), 1); saveCart(); }
+    if (act === 'rm' && c) { cart.splice(cart.indexOf(c), 1); saveCart(); }
+    if (act === 'wrm') { wish.splice(wish.indexOf(id), 1); saveWish(); }
+    if (act === 'wcart') { if (!inCart(id)) cart.push({ id: id, q: 1 }); saveCart(); }
+    if (act === 'checkout') STEP = 'form';
+    if (act === 'back') STEP = 'list';
+    if (act === 'send') return sendOrder(a);
+    renderDrawer(); rerender();
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && dr.classList.contains('on')) closeDrawer(); });
+
+  function shopHref() { return (LANG === 'ru' ? '' : '/' + LANG) + '/shop/'; }
+  function metaLine(it) {
+    var parts = [];
+    if (it.s) parts.push(((it.c === 'Браслеты' || it.c === 'Чокеры') ? T.bead : T.size) + ' ' + sizeStr(it.s));
+    parts.push(it.id);
+    return parts.join(' · ');
+  }
+  function renderDrawer() {
+    dr.querySelectorAll('[data-tab]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-tab') === TAB); });
+    refreshCounts();
+    if (TAB === 'wish') {
+      if (!wish.length) { drBody.innerHTML = '<p class="drawer__empty">' + esc(T.emptyWish) + '</p>' + (IS_SHOP ? '' : '<a class="cta" href="' + shopHref() + '">' + esc(T.toCatalog) + ' →</a>'); return; }
+      drBody.innerHTML = '<ul class="dl">' + wish.map(function (id) {
+        var it = BYID[id]; if (!it) return '';
+        return '<li class="dl__i"><div class="dl__t"><span class="mono">' + esc(T.one[it.c] || '') + '</span><b>' + esc(nice(lname(it))) + '</b><small>' + esc(metaLine(it)) + '</small></div>' +
+          '<div class="dl__r"><span class="dl__p">' + money(it.p[CUR]) + '</span>' +
+          (inCart(id) ? '<span class="dl__ok">' + esc(T.inCart) + '</span>' : '<button type="button" class="btn-s" data-act="wcart" data-id="' + esc(id) + '">' + esc(T.moveToCart) + '</button>') +
+          '<button type="button" class="dl__rm" data-act="wrm" data-id="' + esc(id) + '">' + esc(T.remove) + '</button></div></li>';
+      }).join('') + '</ul>';
+      return;
+    }
+    if (!cart.length) { drBody.innerHTML = '<p class="drawer__empty">' + esc(T.emptyCart) + '</p>' + (IS_SHOP ? '' : '<a class="cta" href="' + shopHref() + '">' + esc(T.toCatalog) + ' →</a>'); return; }
+    var total = 0, totalMdl = 0, hasBracelet = false;
+    var list = cart.map(function (c) {
+      var it = BYID[c.id]; if (!it) return '<li class="dl__i"><div class="dl__t"><b>' + esc(c.id) + '</b><small>…</small></div></li>';
+      total += it.p[CUR] * c.q; totalMdl += it.p.MDL * c.q; if (it.c === 'Браслеты') hasBracelet = true;
+      return '<li class="dl__i"><div class="dl__t"><span class="mono">' + esc(T.one[it.c] || '') + '</span><b>' + esc(nice(lname(it))) + '</b><small>' + esc(metaLine(it)) + '</small></div>' +
+        '<div class="dl__r"><span class="dl__p">' + money(it.p[CUR] * c.q) + '</span>' +
+        '<span class="qty" aria-label="' + esc(T.qty) + '"><button type="button" data-act="dec" data-id="' + esc(c.id) + '">−</button><i>' + c.q + '</i><button type="button" data-act="inc" data-id="' + esc(c.id) + '">+</button></span>' +
+        '<button type="button" class="dl__rm" data-act="rm" data-id="' + esc(c.id) + '">' + esc(T.remove) + '</button></div></li>';
+    }).join('');
+    var count = 0; cart.forEach(function (c) { count += c.q; });
+    var sum = sumHtml(total, count, totalMdl);
+    if (STEP === 'list') {
+      drBody.innerHTML = '<ul class="dl">' + list + '</ul>' + delivChoice() + '<div id="dSum">' + sum + '</div><button type="button" class="lead__submit" data-act="checkout">' + esc(T.checkout) + '</button><p class="dnote">' + esc(T.payNote) + '</p>';
+      return;
+    }
+    if (STEP === 'ok') return;
+    var saved = store('gs_contact') || {};
+    drBody.innerHTML = '<button type="button" class="dback" data-act="back">' + esc(T.back) + '</button>' + delivChoice() + '<div id="dSum">' + sum + '</div>' +
+      '<div class="dform">' +
+      field('dName', T.name, '', saved.name) + field('dContact', T.contact, T.contactHint, saved.contact) +
+      '<label class="lead__f"><span>' + esc(T.method) + '</span><select id="dMethod">' + T.methods.map(function (m, i) { return '<option value="' + METHOD_CRM[i] + '"' + (saved.method === METHOD_CRM[i] ? ' selected' : '') + '>' + esc(m) + '</option>'; }).join('') + '</select></label>' +
+      field('dCountry', T.country, T.optional, saved.country) +
+      (hasBracelet ? field('dWrist', T.wrist, T.wristHint, '') : '') +
+      '<label class="lead__f"><span>' + esc(T.comment) + ' <i>· ' + esc(T.optional) + '</i></span><textarea id="dComment" rows="2"></textarea></label>' +
+      '<p class="derr" id="dErr" role="alert"></p><button type="button" class="lead__submit" data-act="send">' + esc(T.send) + '</button><p class="dnote">' + esc(T.payNote) + '</p></div>';
+  }
+  function cartStats() { var total = 0, totalMdl = 0, count = 0; cart.forEach(function (c) { var it = BYID[c.id]; if (it) { total += it.p[CUR] * c.q; totalMdl += it.p.MDL * c.q; } count += c.q; }); return { total: total, totalMdl: totalMdl, count: count }; }
+  /* порог бесплатной доставки: сумма изделий в БАЗОВЫХ лей (it.p.MDL) >= freeFromLei; по штукам (threshold) — только запасной вариант */
+  function hasFreeRule(d) { return !!d && (d.freeFromLei > 0 || d.threshold > 0); }
+  function isFreeDelivery(d, mdl, count) { return d.freeFromLei > 0 ? mdl >= d.freeFromLei : count >= d.threshold; }
+  function freeFromText(d) {
+    if (!(d.freeFromLei > 0)) return String(d.threshold) + (LANG === 'ru' ? ' изделий' : LANG === 'ro' ? ' produse' : ' items');
+    var s = money(d.freeFromLei, 'MDL');
+    if (CUR !== 'MDL' && d.freeFrom && d.freeFrom[CUR]) s += ' (≈ ' + money(d.freeFrom[CUR], CUR) + ')';
+    return s;
+  }
+  function sumHtml(total, count, totalMdl) {
+    var dl = CAT && CAT.delivery;
+    if (!dl || !dl[CUR] || !hasFreeRule(dl)) {
+      return '<div class="dsum"><span>' + esc(T.total) + '</span><b>' + money(total) + '</b></div><p class="dnote dnote--d">' + esc(T.delivery) + ' — ' + esc(T.tbd) + '.</p>';
+    }
+    var pick = DELIV === 'pickup', free = isFreeDelivery(dl, totalMdl, count), fee = (pick || free) ? 0 : dl[CUR];
+    var out = '<div class="dsum dsum--s"><span>' + esc(T.goods) + '</span><span>' + money(total) + '</span></div>' +
+      '<div class="dsum dsum--s"><span>' + esc(T.delivery) + '</span><span>' + (pick ? esc(T.pickupV) : free ? esc(T.free) : money(fee)) + '</span></div>' +
+      '<div class="dsum"><span>' + esc(T.total) + '</span><b>' + money(total + fee) + '</b></div>';
+    if (!pick && !free) out += '<p class="dnote dnote--d">' + esc(T.noteDel(delivPlace(), money(dl[CUR]), freeFromText(dl)).replace(/^[^.]*\.\s*/, '')) + '</p>';
+    return out;
+  }
+  function delivChoice() {
+    return '<fieldset class="dchoice" role="radiogroup" aria-label="' + esc(T.delivery) + '"><legend class="mono">' + esc(T.delivery) + '</legend>' +
+      [['delivery', T.delYes], ['pickup', T.delNo]].map(function (o) {
+        return '<label class="dchoice__o' + (DELIV === o[0] ? ' on' : '') + '"><input type="radio" name="dDel" value="' + o[0] + '"' + (DELIV === o[0] ? ' checked' : '') + '><span>' + esc(o[1]) + '</span></label>';
+      }).join('') + '</fieldset>';
+  }
+  drBody.addEventListener('change', function (e) {
+    var r = e.target.closest && e.target.closest('input[name="dDel"]'); if (!r) return;
+    DELIV = r.value === 'pickup' ? 'pickup' : 'delivery'; store('gs_deliv', DELIV);
+    drBody.querySelectorAll('.dchoice__o').forEach(function (l) { l.classList.toggle('on', l.querySelector('input').checked); });
+    var box = document.getElementById('dSum'), st = cartStats(); if (box) box.innerHTML = sumHtml(st.total, st.count, st.totalMdl); // поля формы не сбрасываем
+  });
+  function field(id, label, hint, val) {
+    return '<label class="lead__f"><span>' + esc(label) + (hint ? ' <i>· ' + esc(hint) + '</i>' : '') + '</span><input id="' + id + '" value="' + esc(val || '') + '"' + (id === 'dContact' ? ' inputmode="tel" autocomplete="tel"' : id === 'dName' ? ' autocomplete="name"' : '') + '></label>';
+  }
+  function sendOrder(btn) {
+    var v = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
+    var name = v('dName'), contact = v('dContact'), err = document.getElementById('dErr');
+    if (!name || !contact) { err.textContent = T.need; return; }
+    err.textContent = ''; btn.disabled = true; btn.textContent = T.sending;
+    store('gs_contact', { name: name, contact: contact, method: v('dMethod'), country: v('dCountry') });
+    fetch('/api/lead', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: name, contact: contact, method: v('dMethod'), country: v('dCountry'), comment: v('dComment'), wrist: v('dWrist'),
+        cart: cart.map(function (c) { return { id: c.id, q: c.q }; }), currency: CUR, delivery: DELIV, interest: 'Корзина', page: location.href, lang: navigator.language || '' })
+    }).then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+      .then(function (d) {
+        if (!d.ok) throw new Error();
+        cart = []; saveCart(); STEP = 'ok'; rerender();
+        drBody.innerHTML = '<div class="dok"><p class="mono">✓</p><h3>' + esc(T.okTitle) + '</h3><p>' + esc(T.okText) + '</p><button type="button" class="lead__submit" data-x>' + esc(T.close) + '</button></div>';
+      })
+      .catch(function () { err.textContent = T.err; btn.disabled = false; btn.textContent = T.send; });
+  }
+
+  /* ── цена на карточках главной (капсулы) ── */
+  function renderPriceSlots() {
+    document.querySelectorAll('.price[data-id]').forEach(function (s) {
+      var it = BYID[s.getAttribute('data-id')];
+      if (!it) { s.hidden = true; return; }
+      s.hidden = false;
+      var id = it.id, w = wish.indexOf(id) >= 0;
+      s.innerHTML = '<span class="price__v">' + money(it.p[CUR]) + '</span><span class="price__acts">' +
+        '<button type="button" class="ico-btn' + (w ? ' on' : '') + '" data-wish="' + esc(id) + '" aria-pressed="' + w + '" aria-label="' + esc(w ? T.wishDel : T.wishAdd) + '">' + I_HEART + '</button>' +
+        '<button type="button" class="btn-s' + (inCart(id) ? ' done' : '') + '" data-add="' + esc(id) + '">' + esc(inCart(id) ? T.inCart : T.add) + '</button></span>';
+    });
+  }
+  /* ── фото изделий: манифест /assets/photos.json (его собирает tools/photos/process.py); ключ — артикул из таблицы.
+        f — кадры по порядку: c — обложка на белом, s1/s2 — сцены, w — на руке, d — деталь, p — упаковка. Нет записи — рисуем схему из бусин. ── */
+  var PH = {}, PH_BASE = '/assets/p/';
+  function loadPhotos() {
+    return fetch('/assets/photos.json', { cache: 'no-cache' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (m) { if (m && Array.isArray(m.items)) { PH_BASE = m.base || PH_BASE; m.items.forEach(function (e) { if (e && e.id && e.d && e.f && e.f.length) PH[e.id] = e; }); } })
+      .catch(function () {});
+  }
+  function phUrl(e, f, w) { return PH_BASE + e.d + '/' + f + '-' + w + '.webp'; }
+  /* ── справочник капсул: /assets/caps/<язык>.json — для каждой капсулы (по артикулу) лид, описание со *звёздочками* вокруг названий камней,
+        состав [[название на языке, ключ RU для цвета], …] и (у четырёх капсул-задач) картинка состава. Собирается tools/caps/build_caps.py из документа владельца.
+        Грузится вместе с каталогом; нет файла — сайт работает как раньше. ── */
+  var CAPS = null;
+  function loadCaps() {
+    return fetch('/assets/caps/' + LANG + '.json')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (m) { if (m && m.items && typeof m.items === 'object') CAPS = m.items; })
+      .catch(function () {});
+  }
+  function capOf(id) { return (CAPS && CAPS[id]) || null; }
+  function capText(s) { return esc(s).replace(/\*([^*]+)\*/g, '<b>$1</b>'); }
+  function capChips(cp) { return cp.s.map(function (s) { return '<li><i style="--c:' + (tintOf(s[1]) || '#8d949b') + '" aria-hidden="true"></i>' + esc(s[0]) + '</li>'; }).join(''); }
+  function photoFirst(list) { var a = [], b = []; list.forEach(function (i) { (PH[i.id] ? a : b).push(i); }); return a.concat(b); }
+  /* подсветка найденного слова в названии: HLP — основы запроса (по началу слова), HLW — основы камня (короткие — только слово целиком) */
+  var HLP = [], HLW = [];
+  function setHL(p, w) { HLP = (p || []).filter(function (t) { return t && t.length > 1; }); HLW = (w || []).filter(function (t) { return t && t.length > 1; }); }
+  function hl(s) {
+    s = String(s == null ? '' : s);
+    if (!HLP.length && !HLW.length) return esc(s);
+    return s.split(/([A-Za-zА-Яа-яЁёĂÂÎȘȚăâîșț0-9]+)/).map(function (part, i) {
+      if (i % 2 === 0) return esc(part);
+      var w = norm(part);
+      var hit = HLP.some(function (t) { return w.indexOf(t) === 0; }) || HLW.some(function (t) { return t.length < 5 ? w === t : w.indexOf(t) === 0; });
+      return hit ? '<mark>' + esc(part) + '</mark>' : esc(part);
+    }).join('');
+  }
+  /* ── визуал изделия: схема украшения в цвете камня (это иллюстрация, не фото; фото из колонки «Фото» показываются вместо неё) ── */
+  var MIN = window.GS_MIN || null, UIDN = 0;
+  function f1(n) { return Math.round(n * 10) / 10; }
+  function tintOf(name) { var t = MIN && MIN.tint(name); return t ? t.hex : null; }
+  function plateBg(hex) {
+    if (!hex || !MIN) return '#232a31';
+    var c = MIN.hsl(hex); return 'hsl(' + c[0] + ',' + Math.min(c[1], 55) + '%,' + Math.max(15, Math.min(27, Math.round(c[2] * .42))) + '%)';
+  }
+  function shade(hex, dl) { var c = MIN.hsl(hex); return 'hsl(' + c[0] + ',' + c[1] + '%,' + Math.max(3, Math.min(96, c[2] + dl)) + '%)'; }
+  function parseMm(it) { var m = (String(it.s || '') + ' ' + it.n).match(/(\d{1,2}(?:[.,]\d)?)\s*(?:мм|mm)/i); return m ? parseFloat(m[1].replace(',', '.')) : 8; }
+  function beadG(id, hex) {
+    return '<radialGradient id="' + id + '" cx=".34" cy=".3" r=".8"><stop offset="0" stop-color="' + shade(hex, 34) + '"/><stop offset=".4" stop-color="' + shade(hex, 6) + '"/><stop offset="1" stop-color="' + shade(hex, -26) + '"/></radialGradient>';
+  }
+  function bead(x, y, r, g) {
+    return '<circle cx="' + f1(x) + '" cy="' + f1(y) + '" r="' + f1(r) + '" fill="url(#' + g + ')"/><circle cx="' + f1(x - r * .34) + '" cy="' + f1(y - r * .38) + '" r="' + f1(r * .23) + '" fill="rgba(255,255,255,.55)"/>';
+  }
+  var SILVER = '<linearGradient id="SV" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4f6f8"/><stop offset=".5" stop-color="#9aa1a9"/><stop offset="1" stop-color="#e2e6ea"/></linearGradient>';
+  function qb(P0, P1, P2, t) { var u = 1 - t; return [u * u * P0[0] + 2 * u * t * P1[0] + t * t * P2[0], u * u * P0[1] + 2 * u * t * P1[1] + t * t * P2[1]]; }
+  function strand(P0, P1, P2, r, g) {
+    var len = 0, prev = qb(P0, P1, P2, 0), i, p;
+    for (i = 1; i <= 40; i++) { p = qb(P0, P1, P2, i / 40); len += Math.hypot(p[0] - prev[0], p[1] - prev[1]); prev = p; }
+    var n = Math.max(6, Math.round(len / (2 * r * 1.02))), s = '';
+    for (i = 0; i < n; i++) { p = qb(P0, P1, P2, (i + .5) / n); s += bead(p[0], p[1], r, g); }
+    return s;
+  }
+  function plate(it) {
+    if (!MIN) return '';
+    var cp = capOf(it.id), cols = null; // капсула из справочника без фото: бусины по цветам камней состава (иллюстрация)
+    if (cp && it.c === 'Браслеты') { cols = cp.s.map(function (x) { return tintOf(x[1]); }).filter(Boolean); if (cols.length < 2) cols = null; }
+    var hex = tintOf(it.n), neutral = !hex; hex = hex || (cols && cols[0]) || '#8d949b';
+    var mm = parseMm(it), r = Math.max(4.6, Math.min(13, mm * 1.05)), g = 'bd' + (++UIDN), s = '';
+    var nm = String(it.n).toLowerCase();
+    if (it.c === 'Браслеты') {
+      var cx = 100, cy = 76, rx = 66, ry = 46, per = Math.PI * (3 * (rx + ry) - Math.sqrt((3 * rx + ry) * (rx + 3 * ry))), n = Math.max(9, Math.round(per / (2 * r * 1.02))), arr = [], i;
+      for (i = 0; i < n; i++) { var a = (i / n) * Math.PI * 2 + .2; arr.push([cx + rx * Math.cos(a), cy + ry * Math.sin(a), i]); }
+      arr.sort(function (p, q) { return p[1] - q[1]; });
+      s = '<ellipse cx="100" cy="80" rx="50" ry="34" fill="rgba(0,0,0,.32)"/>' + arr.map(function (p) { return bead(p[0], p[1], r * (.9 + .2 * (p[1] - (cy - ry)) / (2 * ry)), cols ? g + 'c' + (p[2] % cols.length) : g); }).join('');
+    } else if (it.c === 'Чокеры') {
+      s = strand([28, 44], [100, 136], [172, 44], r, g) + '<circle cx="24" cy="41" r="3.2" fill="url(#SV)"/><circle cx="176" cy="41" r="3.2" fill="url(#SV)"/><path d="M22 40 12 32M178 40 188 32" stroke="url(#SV)" stroke-width="1.6" stroke-linecap="round"/>';
+    } else if (it.c === 'Колье') {
+      var py = 96 + r * .9;
+      s = strand([40, 20], [100, 172], [160, 20], r * .9, g) + '<circle cx="100" cy="' + f1(py - r * 1.5) + '" r="2.6" fill="url(#SV)"/>' + bead(100, py + r * .8, r * 1.5, g) + '<circle cx="36" cy="18" r="3" fill="url(#SV)"/><circle cx="164" cy="18" r="3" fill="url(#SV)"/>';
+    } else if (it.c === 'Кольца') {
+      s = '<ellipse cx="100" cy="94" rx="47" ry="30" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="11" transform="translate(0 3)"/><ellipse cx="100" cy="94" rx="47" ry="30" fill="none" stroke="url(#SV)" stroke-width="9"/>' +
+        (neutral ? '<circle cx="100" cy="62" r="9" fill="url(#SV)"/>' : '<ellipse cx="100" cy="62" rx="22" ry="17" fill="url(#SV)"/><ellipse cx="100" cy="62" rx="17.5" ry="13.5" fill="url(#' + g + ')"/><ellipse cx="93" cy="56" rx="6" ry="3.4" fill="rgba(255,255,255,.5)"/>');
+    } else if (it.c === 'Серьги') {
+      var stud = /пусет/.test(nm);
+      [66, 134].forEach(function (x) {
+        if (stud) s += '<circle cx="' + x + '" cy="76" r="' + f1(r * 1.6 + 3) + '" fill="url(#SV)"/>' + bead(x, 76, r * 1.6, g);
+        else s += '<path d="M' + x + ' 24C' + (x + 15) + ' 12 ' + (x + 15) + ' 40 ' + x + ' 46" fill="none" stroke="url(#SV)" stroke-width="2.4" stroke-linecap="round"/><circle cx="' + x + '" cy="51" r="3.4" fill="url(#SV)"/>' +
+          '<path d="M' + x + ' 58C' + (x - 22) + ' 84 ' + (x - 15) + ' 116 ' + x + ' 120C' + (x + 15) + ' 116 ' + (x + 22) + ' 84 ' + x + ' 58Z" fill="url(#' + g + ')"/><ellipse cx="' + (x - 6) + '" cy="82" rx="3" ry="8" fill="rgba(255,255,255,.45)" transform="rotate(12 ' + (x - 6) + ' 82)"/>';
+      });
+    } else {
+      var key = MIN.keyForName(it.n);
+      if (key) { var art = MIN.render(key, nice(lname(it))); if (art && art.indexOf('<svg') === 0) return art; } // фото камня на плитке украшения не ставим: там рисунок в цвете камня
+      var c = hex;
+      s = '<polygon points="100,20 128,44 122,112 100,124 78,112 72,44" fill="' + shade(c, -6) + '"/><polygon points="100,20 128,44 100,52 72,44" fill="' + shade(c, 26) + '"/><polygon points="72,44 100,52 100,124 78,112" fill="' + shade(c, -20) + '"/><polygon points="128,44 122,112 100,124 100,52" fill="' + shade(c, 6) + '"/><path d="M100 52V124M72 44 100 52 128 44" stroke="rgba(255,255,255,.28)" fill="none"/>';
+    }
+    return ('<svg class="gl" viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>' + SILVER + (cols && it.c === 'Браслеты' ? cols.map(function (c, k) { return beadG(g + 'c' + k, c); }).join('') : beadG(g, hex)) + '</defs>' + s + '</svg>').split('SV').join('sv' + g);
+  }
+  function visual(it) {
+    var e = PH[it.id];
+    if (e) return '<img class="ph" loading="lazy" decoding="async" width="640" height="640" src="' + phUrl(e, e.f[0], 640) + '" alt="' + esc(nice(lname(it))) + '">';
+    return it.img ? '<img loading="lazy" src="' + esc(it.img) + '" alt="' + esc(nice(lname(it))) + '">' : plate(it);
+  }
+  function isBeads(it) { return it.c === 'Браслеты' || it.c === 'Чокеры'; }
+  function sizeText(it) { return it.s ? (isBeads(it) ? T.bead : T.size) + ' ' + sizeStr(it.s) : ''; }
+
+  /* ── карточка изделия (магазин и подборка под камень) ── */
+  function pc(it) {
+    var w = wish.indexOf(it.id) >= 0, c = inCart(it.id), d = it.d && (it.d[LANG] || it.d.ru), sz = sizeText(it), id = esc(it.id);
+    return '<article class="pc" data-id="' + id + '">' +
+      '<button type="button" class="pc__ph' + (PH[it.id] ? ' pc__ph--img' : '') + '" data-view="' + id + '" style="--tint:' + plateBg(tintOf(it.n)) + '" aria-label="' + esc(T.view + ': ' + nice(it.n)) + '">' + visual(it) +
+      '<span class="pc__tag mono">' + esc(T.one[it.c] || it.c) + '</span><span class="pc__code mono">' + id + '</span><span class="pc__eye">' + esc(T.view) + ' <i aria-hidden="true">→</i></span></button>' +
+      '<div class="pc__b"><h3 class="pc__n">' + hl(nice(lname(it))) + '</h3>' + (sz ? '<p class="pc__m">' + esc(sz) + '</p>' : '') + (d ? '<p class="pc__d">' + esc(d) + '</p>' : '') +
+      '<div class="pc__f"><span class="pc__p">' + money(it.p[CUR]) + '</span><span class="pc__ic"><button type="button" class="ico-btn pc__wish' + (w ? ' on' : '') + '" data-wish="' + id + '" aria-pressed="' + w + '" aria-label="' + esc(w ? T.wishDel : T.wishAdd) + '">' + I_HEART + '</button>' +
+      '<button type="button" class="ico-btn pc__cart' + (c ? ' done' : '') + '" data-add="' + id + '" aria-label="' + esc(c ? T.inCart : T.add) + '">' + (c ? '✓' : I_BAG) + '</button></span></div>' +
+      '<div class="pc__act"><button type="button" class="pc__view" data-view="' + id + '">' + esc(T.view) + ' <i aria-hidden="true">→</i></button></div></div></article>';
+  }
+  function skeleton(n) { var s = ''; for (var i = 0; i < n; i++) s += '<article class="pc pc--sk" aria-hidden="true"><div class="pc__ph"></div><div class="pc__b"><i></i><i></i><i></i></div></article>'; return s; }
+
+  /* ── окно «Посмотреть изделие» ── */
+  var qv = document.createElement('div');
+  qv.className = 'qv'; qv.setAttribute('aria-hidden', 'true');
+  qv.innerHTML = '<div class="qv__bg" data-qx></div><div class="qv__p" role="dialog" aria-modal="true"><button type="button" class="qv__x" data-qx aria-label="' + esc(T.close) + '">×</button><div class="qv__ph"></div><div class="qv__b"></div></div>';
+  document.body.appendChild(qv);
+  var QV = null;
+  function otherPrices(it) { return CURS.filter(function (c) { return c !== CUR; }).map(function (c) { return money(it.p[c], c); }).join(' · '); }
+  function priceNote() {
+    var d = CAT && CAT.delivery;
+    if (!d || !d[CUR] || !hasFreeRule(d)) return T.noteMDL;
+    return T.noteDel(delivPlace(), money(d[CUR], CUR), freeFromText(d));
+  }
+  /* галерея в окне изделия: листание свайпом (scroll-snap), точки и стрелки; обложка на белом «растворяется» в фоне окна */
+  function gallery(it, e) {
+    var n = e.f.length, nm = nice(lname(it)), h = '<div class="qg"><div class="qg__t" tabindex="0">';
+    e.f.forEach(function (f, i) {
+      h += '<img class="qg__i' + (f === 'c' ? ' qg__i--c' : '') + '" src="' + phUrl(e, f, 1200) + '" srcset="' + phUrl(e, f, 640) + ' 640w, ' + phUrl(e, f, 1200) + ' 1200w" sizes="(max-width:700px) 100vw, 460px" width="1200" height="1200" alt="' +
+        esc(i ? nm + ' — ' + T.photo + ' ' + (i + 1) : nm) + '"' + (i ? ' loading="lazy"' : '') + ' decoding="async" draggable="false">';
+    });
+    h += '</div>';
+    if (n > 1) {
+      h += '<button type="button" class="qg__a qg__a--p" data-g="-1" aria-label="' + esc(T.prevL) + '" hidden>‹</button><button type="button" class="qg__a qg__a--n" data-g="1" aria-label="' + esc(T.nextL) + '">›</button><div class="qg__d" role="tablist">';
+      e.f.forEach(function (f, i) { h += '<button type="button" role="tab" data-gi="' + i + '" aria-selected="' + (i === 0) + '" aria-label="' + esc(T.photo + ' ' + (i + 1) + ' ' + T.of + ' ' + n) + '"' + (i ? '' : ' class="on"') + '></button>'; });
+      h += '</div>';
+    }
+    return h + '</div>';
+  }
+  function bindGallery(ph) {
+    var t = ph.querySelector('.qg__t'); if (!t) return;
+    var dots = ph.querySelectorAll('.qg__d button'), pb = ph.querySelector('.qg__a--p'), nb = ph.querySelector('.qg__a--n');
+    function cur() { return Math.round(t.scrollLeft / Math.max(1, t.clientWidth)); }
+    function sync() { var c = cur(); dots.forEach(function (d, i) { d.classList.toggle('on', i === c); d.setAttribute('aria-selected', String(i === c)); }); if (pb) pb.hidden = c <= 0; if (nb) nb.hidden = c >= dots.length - 1; }
+    function go(i) { i = Math.max(0, Math.min(dots.length - 1, i)); var rm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches; t.scrollTo({ left: i * t.clientWidth, behavior: rm ? 'auto' : 'smooth' }); }
+    t.addEventListener('scroll', function () { clearTimeout(t._s); t._s = setTimeout(sync, 40); }, { passive: true });
+    ph.addEventListener('click', function (e) { var d = e.target.closest('[data-gi]'); if (d) { go(+d.getAttribute('data-gi')); return; } var a = e.target.closest('[data-g]'); if (a) go(cur() + (+a.getAttribute('data-g'))); });
+    ph._go = go; ph._cur = cur;
+  }
+  function renderView() {
+    var it = QV && BYID[QV]; if (!it) return;
+    var w = wish.indexOf(it.id) >= 0, c = inCart(it.id), d = it.d && (it.d[LANG] || it.d.ru), sz = sizeText(it), id = esc(it.id), cp = capOf(it.id);
+    var ph = qv.querySelector('.qv__ph'), pe = PH[it.id], pk = it.id + (!pe && cp && cp.img ? '+i' : '');
+    if (ph.getAttribute('data-id') !== pk) { // кадры пересобираем только при смене изделия, чтобы «в корзину» не сбрасывало листание
+      ph.setAttribute('data-id', pk); ph._go = null;
+      if (pe) { ph.className = 'qv__ph qv__ph--img'; ph.innerHTML = gallery(it, pe); bindGallery(ph); }
+      else if (cp && cp.img) { ph.className = 'qv__ph'; ph.style.setProperty('--tint', '#13161a'); ph.innerHTML = '<img src="' + esc(cp.img) + '" width="800" height="800" decoding="async" alt="' + esc(nice(lname(it))) + '">'; } // нет галереи — картинка состава
+      else { ph.className = 'qv__ph'; ph.style.setProperty('--tint', plateBg(tintOf(it.n))); ph.innerHTML = visual(it); }
+    }
+    var st = '';
+    if (STONE && STONE.desc && stoneFind(STONE.ru).list.some(function (x) { return x.id === it.id; })) st = '<div class="qv__st"><span class="mono">' + esc(T.aboutStone) + ' · ' + esc(STONE.name) + '</span><p>' + esc(STONE.desc) + '</p></div>';
+    // капсула из справочника: для чего (лид) → состав (камни с цветом) → описание камней; описание из таблицы для неё не показываем, чтобы не дублировать
+    var cb = cp ? '<p class="qv__lead">' + esc(cp.l) + '</p><div class="qv__comp"><span class="mono">' + esc(T.comp) + '</span><ul>' + capChips(cp) + '</ul></div><p class="qv__d qv__d--cap">' + capText(cp.d) + '</p>' : (d ? '<p class="qv__d">' + esc(d) + '</p>' : '');
+    qv.querySelector('.qv__b').innerHTML = '<p class="mono qv__t">' + esc(T.one[it.c] || it.c) + ' · ' + id + '</p><h3 class="qv__n">' + esc(nice(lname(it))) + '</h3>' + (sz ? '<p class="qv__m">' + esc(sz) + '</p>' : '') +
+      cb + st +
+      '<div class="qv__pr"><b>' + money(it.p[CUR]) + '</b><span>≈ ' + esc(otherPrices(it)) + '</span></div><p class="qv__note">' + esc(priceNote()) + '</p>' +
+      '<div class="qv__acts"><button type="button" class="qv__buy' + (c ? ' done' : '') + '" data-add="' + id + '">' + esc(c ? T.inCart : T.add) + '</button>' +
+      '<button type="button" class="qv__save' + (w ? ' on' : '') + '" data-wish="' + id + '" aria-pressed="' + w + '">' + I_HEART + '<span>' + esc(w ? T.wishDel : T.wishAdd) + '</span></button></div>' +
+      '<a class="qv__ask" href="https://instagram.com/gemstone.md" target="_blank" rel="noopener">' + esc(T.ask) + ' →</a>';
+  }
+  function openView(id) {
+    if (!BYID[id]) return;
+    ctHide(); QV = id; qv.querySelector('.qv__ph').removeAttribute('data-id'); renderView(); qv.classList.add('on'); qv.setAttribute('aria-hidden', 'false'); document.documentElement.classList.add('noscroll');
+    if (IS_SHOP) { S.id = id; syncUrl(); }
+    try { qv.querySelector('.qv__x').focus({ preventScroll: true }); } catch (e) {}
+  }
+  function closeView() {
+    qv.classList.remove('on'); qv.setAttribute('aria-hidden', 'true'); QV = null;
+    if (!dr.classList.contains('on')) document.documentElement.classList.remove('noscroll');
+    if (IS_SHOP) { S.id = ''; syncUrl(); }
+  }
+  qv.addEventListener('click', function (e) { if (e.target.closest('[data-qx]')) closeView(); });
+  document.addEventListener('keydown', function (e) {
+    if (!qv.classList.contains('on')) return;
+    if (e.key === 'Escape') closeView();
+    else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { var ph = qv.querySelector('.qv__ph'); if (ph && ph._go) ph._go(ph._cur() + (e.key === 'ArrowRight' ? 1 : -1)); }
+  });
+
+  /* ── клики: в корзину / отложить / посмотреть ── */
+  document.addEventListener('click', function (e) {
+    var v = e.target.closest('[data-view]');
+    if (v) {
+      var vid = v.getAttribute('data-view');
+      if (v.tagName === 'A' && (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1)) return; // «открыть в новой вкладке» работает как обычная ссылка
+      if (BYID[vid]) { e.preventDefault(); openView(vid); return; }
+      if (v.tagName === 'A') return; // каталог ещё не загрузился — ссылка откроет изделие на странице каталога
+      e.preventDefault(); return;
+    }
+    var a = e.target.closest('[data-add]'); if (a) { e.preventDefault(); var id = a.getAttribute('data-add'); if (inCart(id)) { closeViewSilently(); openDrawer('cart'); } else addToCart(id); return; }
+    var w = e.target.closest('[data-wish]'); if (w) { e.preventDefault(); toggleWish(w.getAttribute('data-wish')); }
+  });
+  function closeViewSilently() { if (qv.classList.contains('on')) closeView(); }
+
+  /* ── подсказка при наведении на капсулу: для чего и из каких камней (одна-две строки); полное описание — в окне изделия по клику.
+        Только мышь/перо и фокус с клавиатуры; на телефоне подсказки нет — касание сразу открывает окно. Уходит вместе с курсором. ── */
+  var ct = document.createElement('div');
+  ct.className = 'ct'; ct.setAttribute('role', 'tooltip'); ct.setAttribute('aria-hidden', 'true'); document.body.appendChild(ct);
+  var CT = { el: null, t: 0, x: 0, y: 0, raf: 0, kb: null, skip: null }; // skip — карточка, где подсказку закрыли (Esc, клик): до ухода курсора не возвращаем
+  var CT_SEL = '.pc[data-id],.zt[data-view],.zd__core[data-view],.cap[data-sku]';
+  function ctId(el) { return el.getAttribute('data-view') || el.getAttribute('data-sku') || el.getAttribute('data-id') || ''; }
+  function ctPlace() {
+    CT.raf = 0; if (!ct.classList.contains('on')) return;
+    var w = ct.offsetWidth, h = ct.offsetHeight, vw = document.documentElement.clientWidth, vh = window.innerHeight, m = 8, x, y;
+    if (CT.kb) { var r = CT.kb.getBoundingClientRect(); x = r.left; y = r.bottom + 8; if (y + h > vh - m) y = r.top - h - 8; }
+    else { x = CT.x + 16; y = CT.y + 20; if (x + w > vw - m) x = CT.x - w - 16; if (y + h > vh - m) y = CT.y - h - 14; }
+    x = Math.max(m, Math.min(x, vw - w - m)); y = Math.max(m, y);
+    ct.style.transform = 'translate3d(' + Math.round(x) + 'px,' + Math.round(y) + 'px,0)';
+  }
+  function ctHide(keep) { clearTimeout(CT.t); if (keep === true) CT.skip = CT.el; CT.el = null; CT.kb = null; if (ct.classList.contains('on')) { ct.classList.remove('on'); ct.setAttribute('aria-hidden', 'true'); } }
+  function ctShow(el) {
+    var cp = capOf(ctId(el)); if (!cp || !el.isConnected) return;
+    ct.innerHTML = '<span class="ct__l">' + esc(cp.l) + '</span><ul class="ct__s">' + capChips(cp) + '</ul><span class="ct__h">' + esc(T.capHint) + ' →</span>';
+    ct.classList.add('on'); ct.setAttribute('aria-hidden', 'false'); ctPlace();
+  }
+  function ctOk(el) { var id = el && ctId(el); return !!(id && BYID[id] && capOf(id)); }
+  function ctArm(el) { CT.el = el; CT.t = setTimeout(function () { ctShow(el); }, 220); }
+  document.addEventListener('pointerover', function (e) {
+    if (e.pointerType === 'touch') return;
+    CT.x = e.clientX; CT.y = e.clientY;
+    var el = e.target.closest ? e.target.closest(CT_SEL) : null;
+    if (el !== CT.skip) CT.skip = null;
+    if (el === CT.el) return;
+    ctHide();
+    if (el && el !== CT.skip && ctOk(el)) ctArm(el);
+  });
+  document.addEventListener('pointermove', function (e) {
+    if (e.pointerType === 'touch') return;
+    CT.x = e.clientX; CT.y = e.clientY;
+    if (!CT.el) { // после прокрутки подсказка гасла: вернуть, как только курсор снова шевельнётся над капсулой
+      var el = e.target.closest ? e.target.closest(CT_SEL) : null;
+      if (el && el !== CT.skip && ctOk(el) && !qv.classList.contains('on') && !dr.classList.contains('on')) ctArm(el);
+      return;
+    }
+    if (!CT.el.isConnected) { ctHide(); return; }
+    if (ct.classList.contains('on') && !CT.kb && !CT.raf) CT.raf = requestAnimationFrame(ctPlace);
+  }, { passive: true });
+  document.addEventListener('mouseout', function (e) { if (!e.relatedTarget) ctHide(); });
+  document.addEventListener('pointerdown', function (e) { if (e.pointerType !== 'touch') ctHide(true); }, true);
+  document.addEventListener('scroll', function () { if (CT.kb) { if (!CT.raf) CT.raf = requestAnimationFrame(ctPlace); } else ctHide(); }, { passive: true, capture: true }); // у подсказки от клавиатуры якорь — элемент: при прокрутке (браузер сам подводит фокус) она едет за ним
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') ctHide(true); });
+  window.addEventListener('blur', function () { ctHide(); });
+  document.addEventListener('focusin', function (e) {
+    var el = e.target.closest ? e.target.closest(CT_SEL) : null, vis = false;
+    try { vis = e.target.matches(':focus-visible'); } catch (x) {}
+    ctHide();
+    if (el && vis && ctOk(el) && !qv.classList.contains('on') && !dr.classList.contains('on')) { CT.el = el; CT.kb = e.target; ctShow(el); }
+  });
+  document.addEventListener('focusout', function () { ctHide(); });
+
+  /* ── страница каталога ── */
+  var shop = document.getElementById('shop');
+  var S = { q: '', c: '', i: '', sort: 'def', limit: 48, id: '' };
+  var QL = { ru: ['Результаты по запросу', '«', '»'], ro: ['Rezultate pentru', '„', '”'], en: ['Results for', '“', '”'] }[LANG];
+  var ICO_SEARCH = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="1.5"/></svg>';
+  if (shop) {
+    try { var u = new URLSearchParams(location.search); S.q = u.get('q') || ''; S.c = u.get('c') || ''; S.sort = u.get('sort') || 'def'; S.id = u.get('id') || ''; S.i = u.get('i') || ''; } catch (e) {}
+    if (S.i && !(MIN && MIN.intent && MIN.intent(S.i))) S.i = '';
+    shop.innerHTML = '<div class="shop__bar"><div class="wrap"><label class="shop__search">' + ICO_SEARCH +
+      '<input id="shopQ" type="search" enterkeyhint="search" autocomplete="off" placeholder="' + esc(T.search) + '" value="' + esc(S.q) + '"><button type="button" class="shop__clr" id="shopClr" aria-label="' + esc(T.clearQ) + '"' + (S.q ? '' : ' hidden') + '>×</button></label>' +
+      '<div class="shop__chips" id="shopChips" role="tablist"></div>' +
+      '<div class="shop__meta"><span class="mono" id="shopCount"></span><label class="shop__sort"><span class="mono">' + esc(T.sort) + '</span><select id="shopSort">' +
+      [['def', T.sDef], ['asc', T.sAsc], ['desc', T.sDesc], ['name', T.sName]].map(function (o) { return '<option value="' + o[0] + '"' + (S.sort === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') +
+      '</select></label></div></div></div><div class="wrap"><div class="shop__rh" id="shopRh" hidden></div><div class="shop__grid" id="shopGrid" aria-live="polite">' + skeleton(8) + '</div><div class="shop__more"><p class="mono" id="shopShown"></p><button type="button" class="btn-o" id="shopMore" hidden>' + esc(T.more) + '</button></div></div>';
+    var qEl = document.getElementById('shopQ'), tq, clr = document.getElementById('shopClr');
+    function setQ(v, now) { qEl.value = v; clr.hidden = !v; clearTimeout(tq); var go = function () { S.q = v.trim(); S.limit = 48; renderShop(); syncUrl(); }; now ? go() : (tq = setTimeout(go, 160)); }
+    qEl.addEventListener('input', function () { refreshCatalog(); setQ(qEl.value); });
+    qEl.addEventListener('focus', function () { refreshCatalog(); });
+    clr.addEventListener('click', function () { setQ('', true); qEl.focus(); });
+    document.getElementById('shopSort').addEventListener('change', function (e) { S.sort = e.target.value; renderShop(); syncUrl(); });
+    document.getElementById('shopChips').addEventListener('click', function (e) { var b = e.target.closest('[data-c]'); if (!b) return; S.c = b.getAttribute('data-c'); S.limit = 48; renderShop(); syncUrl(); });
+    document.getElementById('shopMore').addEventListener('click', function () { S.limit += 48; renderShop(); });
+    shop.addEventListener('click', function (e) {
+      var q = e.target.closest('[data-q]'); if (q) { setQ(q.getAttribute('data-q'), true); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+      if (e.target.closest('[data-reset]')) { S.c = ''; S.i = ''; setQ('', true); }
+    });
+    // декоративный кристалл в шапке — минерал текущей недели
+    var art = document.getElementById('shopArt');
+    if (art && MIN) { try { art.innerHTML = MIN.render(MIN.week().look, ''); } catch (e) {} }
+  }
+  function syncUrl() {
+    try { var u = new URLSearchParams(); if (S.q) u.set('q', S.q); if (S.c) u.set('c', S.c); if (S.i) u.set('i', S.i); if (S.sort !== 'def') u.set('sort', S.sort); if (S.id) u.set('id', S.id); history.replaceState(null, '', location.pathname + (u.toString() ? '?' + u : '')); } catch (e) {}
+  }
+  /* Поиск: слово запроса должно совпасть с НАЧАЛОМ слова в названии/описании («рак» не находит «кракле»);
+     число — только целиком («8» находит «8 мм», но не «28» и не цифры артикула). Артикул ищется отдельно, кириллицей и латиницей
+     («В178» = «B178»), по началу; три и более цифры находят артикул по номеру («178», «2026»). */
+  var LATIN = { 'а': 'a', 'в': 'b', 'е': 'e', 'к': 'k', 'м': 'm', 'н': 'h', 'о': 'o', 'р': 'p', 'с': 'c', 'т': 't', 'х': 'x', 'у': 'y' };
+  function latin(s) { return String(s).replace(/[авекмнорстху]/g, function (c) { return LATIN[c]; }); }
+  function reEsc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  var WB = '(^|[^a-zа-яăâîșț0-9])';
+  function wordRe(t) { return new RegExp(WB + reEsc(t)); }
+  function matchItem(it, toks) {
+    if (!toks.length) return true;
+    if (it._h === undefined) {
+      it._h = norm([it.n, it.t && it.t.ro, it.t && it.t.en, it.c, T.cats[it.c], T.one[it.c], it.s, sizeStr(it.s), it.d && (it.d[LANG] || it.d.ru)].join(' '));
+      it._k = latin(norm(it.id));
+      it._n = it._k.replace(/^[a-z]+/, '');
+    }
+    var hay = it._h;
+    if (!toks._re) toks._re = toks.map(function (t) { return /^\d+$/.test(t) ? new RegExp('(^|[^0-9])' + t + '(?![0-9])') : wordRe(t); });
+    return toks.every(function (t, i) {
+      if (toks._re[i].test(hay)) return true;
+      if (/^[a-zа-я]{1,2}\d/.test(t) && it._k.indexOf(latin(t)) === 0) return true;
+      if (t.length > 2 && /^\d+$/.test(t) && it._n.indexOf(t) === 0) return true;
+      return !!MIN && MIN.alts(t).some(function (a) { return a.st.every(function (s) { return wordRe(s).test(hay); }); });
+    });
+  }
+  function queryStone(q) {
+    if (!MIN || !q) return '';
+    var toks = norm(q).split(/\s+/).filter(Boolean), k = MIN.keyForName(q);
+    if (k) return k;
+    var a = toks.length === 1 ? MIN.alts(toks[0]) : [];
+    return a.length ? a[0].k : '';
+  }
+  function renderShop() {
+    if (!shop || !CAT) return;
+    var grid = document.getElementById('shopGrid'), rh = document.getElementById('shopRh');
+    if (!CAT.ok) { grid.innerHTML = '<p class="shop__empty">' + esc(T.loadErr) + '</p>'; return; }
+    var stat = document.getElementById('shopStat'); if (stat) stat.textContent = T.stat(CAT.items.length);
+    var toks = norm(S.q).split(/\s+/).filter(Boolean);
+    var ints = S.i ? intentIds(S.i) : null;
+    var base = CAT.items.filter(function (it) { return (!ints || ints[it.id]) && matchItem(it, toks); });
+    var hp = toks.slice(), hw = [];
+    toks.forEach(function (t) { if (MIN) MIN.alts(t).forEach(function (a) { hp = hp.concat(a.st); }); });
+    if (S.i && MIN && MIN.intent(S.i)) MIN.intent(S.i).ru.forEach(function (n) { hw = hw.concat(stoneStems(n)); });
+    setHL(hp, hw);
+    document.getElementById('shopChips').innerHTML = [''].concat(CAT.categories).map(function (c) {
+      var n = c ? base.filter(function (i) { return i.c === c; }).length : base.length;
+      return '<button type="button" role="tab" data-c="' + esc(c) + '" class="' + (S.c === c ? 'on' : '') + (n ? '' : ' zero') + '" aria-selected="' + (S.c === c) + '">' + esc(c ? T.cats[c] || c : T.all) + ' <i>' + n + '</i></button>';
+    }).join('');
+    var list = S.c ? base.filter(function (i) { return i.c === S.c; }) : base.slice();
+    if (S.sort === 'asc') list.sort(function (a, b) { return a.p.MDL - b.p.MDL; });
+    else if (S.sort === 'desc') list.sort(function (a, b) { return b.p.MDL - a.p.MDL; });
+    else if (S.sort === 'name') list.sort(function (a, b) { return norm(lname(a)).localeCompare(norm(lname(b)), LANG); });
+    else list = photoFirst(list);
+    document.getElementById('shopCount').textContent = T.found(list.length);
+    // шапка результатов поиска
+    if (S.i && list.length) {
+      var ii = MIN.intent(S.i), ik = MIN.keyForName(ii.art), iart = ik ? MIN.render(ik, '') : '';
+      rh.hidden = false;
+      rh.innerHTML = '<div class="shop__rh-t"><p class="mono">' + esc(T.intentL) + '</p><h2>' + esc(ii.name) + '</h2><p class="shop__rh-n">' + esc(T.found(list.length)) + '</p><p class="shop__rh-s">' + esc(T.stonesL) + ': ' + esc(ii.names.join(' · ')) + '</p></div>' +
+        (iart ? '<div class="shop__rh-a" aria-hidden="true">' + iart + '</div>' : '') + '<button type="button" class="btn-o shop__rh-x" data-reset>' + esc(T.reset) + '</button>';
+    } else if (S.q && list.length) {
+      var sk = queryStone(S.q), art = sk && MIN ? MIN.render(sk, '') : '';
+      rh.hidden = false;
+      rh.innerHTML = '<div class="shop__rh-t"><p class="mono">' + esc(QL[0]) + '</p><h2>' + QL[1] + esc(S.q) + QL[2] + '</h2><p class="shop__rh-n">' + esc(T.found(list.length)) + '</p></div>' +
+        (art ? '<div class="shop__rh-a" aria-hidden="true">' + art + '</div>' : '') + '<button type="button" class="btn-o shop__rh-x" data-reset>' + esc(T.reset) + '</button>';
+    } else { rh.hidden = true; rh.innerHTML = ''; }
+    var more = document.getElementById('shopMore'), shown = document.getElementById('shopShown');
+    if (!list.length) {
+      grid.innerHTML = '<div class="shop__none"><div class="shop__none-a" aria-hidden="true">' + (MIN ? MIN.render(MIN.week().look, '') : '') + '</div><h3>' + esc(T.nothing.split('.')[0] + '.') + '</h3><p>' + esc(T.nothing.split('.').slice(1).join('.').trim()) + '</p>' +
+        '<div class="shop__try"><span class="mono">' + esc(T.tryThese) + '</span>' + T.popular.map(function (w) { return '<button type="button" data-q="' + esc(w) + '">' + esc(w) + '</button>'; }).join('') + '</div>' +
+        '<a class="btn-o" href="https://instagram.com/gemstone.md" target="_blank" rel="noopener">' + esc(T.writeUs) + '</a></div>';
+      more.hidden = true; shown.textContent = ''; return;
+    }
+    grid.innerHTML = list.slice(0, S.limit).map(pc).join('');
+    more.hidden = list.length <= S.limit;
+    shown.textContent = list.length > S.limit ? T.shown + ' ' + S.limit + ' ' + T.of + ' ' + list.length : '';
+  }
+
+  /* ── «весь каталог» на главной ── */
+  function renderCatalogLinks() {
+    document.querySelectorAll('[data-catalog-count]').forEach(function (el) { el.textContent = CAT && CAT.ok ? String(CAT.items.length) : ''; });
+  }
+
+  /* ── подбор по дате → украшения с этим камнем (из каталога) ── */
+  var STONE = null;
+  function stoneStems(ru) {
+    return norm(ru).split(/\s+/).filter(function (w) { return w.length > 2; }).map(function (w) { return w.length > 5 ? w.slice(0, 5) : w; });
+  }
+  function stoneFind(ru) {
+    if (!CAT || !CAT.ok) return { list: [], stems: [] };
+    var st = stoneStems(ru);
+    if (!st.length) return { list: [], stems: [] };
+    // короткие слова (агат, лава, опал) — только целым словом, иначе «лава» находит «лаванду»
+    function hit(words, s) { return words.some(function (w) { return s.length < 5 ? w === s : w.indexOf(s) === 0; }); }
+    function find(stems) {
+      return CAT.items.filter(function (it) {
+        var words = norm(it.n).split(/[^a-zа-я0-9]+/);
+        return stems.every(function (s) { return hit(words, s); });
+      });
+    }
+    var r = find(st), used = st;
+    if (!r.length && st.length > 1) { used = [st.slice().sort(function (a, b) { return b.length - a.length; })[0]]; r = find(used); }
+    return { list: r, stems: used };
+  }
+  var INT_CACHE = {};
+  function intentIds(id) { // артикулы изделий с камнями намерения (по названию, как «Украшения с этим камнем»)
+    if (INT_CACHE[id]) return INT_CACHE[id];
+    var inf = MIN && MIN.intent && MIN.intent(id), set = {};
+    if (inf) inf.ru.forEach(function (n) { stoneFind(n).list.forEach(function (it) { set[it.id] = 1; }); });
+    return (INT_CACHE[id] = set);
+  }
+  var CATORDER = ['Браслеты', 'Кольца', 'Серьги', 'Колье', 'Чокеры', 'Другое'];
+  function variety(list, n) { // первые n — вперемешку по категориям, чтобы подборка не состояла из одних браслетов
+    var by = {}, out = [], i, k;
+    list.forEach(function (it) { (by[it.c] = by[it.c] || []).push(it); });
+    while (out.length < Math.min(n, list.length)) { var added = false; for (i = 0; i < CATORDER.length; i++) { k = CATORDER[i]; if (by[k] && by[k].length && out.length < n) { out.push(by[k].shift()); added = true; } } if (!added) break; }
+    return out;
+  }
+  function renderStoneShop() {
+    var box = document.getElementById('resShop'), all = document.getElementById('fAll');
+    if (!box) return;
+    if (!STONE) { box.innerHTML = ''; if (all) all.hidden = true; return; }
+    if (!CAT) { box.innerHTML = '<div class="pcs">' + skeleton(4) + '</div>'; if (all) all.hidden = true; return; }
+    var fr = stoneFind(STONE.ru), list = fr.list;
+    if (!list.length) { box.innerHTML = '<p class="rs__none">' + esc(T.noneWith) + '</p>'; if (all) all.hidden = true; return; }
+    if (all) { all.href = shopHref() + '?q=' + encodeURIComponent(fr.stems.join(' ')); all.textContent = T.allWith(list.length); all.hidden = false; }
+    setHL([], fr.stems);
+    box.innerHTML = '<div class="pcs">' + variety(photoFirst(list), 8).map(pc).join('') + '</div>';
+  }
+  document.addEventListener('gs:stone', function (e) { STONE = e.detail || null; if (STONE) { loadCatalog(renderStoneShop); refreshCatalog(); } renderStoneShop(); });
+  /* ── главная: «циферблат» капсул по знакам зодиака ──
+     Разметка и позиции — в HTML. Здесь: положение Солнца на шкале, отметка текущего сезона, центр циферблата (капсула под курсором/фокусом,
+     по умолчанию — сезонная), скрыть то, чего нет в каталоге, прокрутить ленту на телефоне к сезонной капсуле. */
+  function sunLon(d) { // эклиптическая долгота Солнца, градусы (низкоточная формула, ошибка < 0.02°)
+    var n = d.getTime() / 86400000 + 2440587.5 - 2451545.0, g = ((357.528 + 0.9856003 * n) % 360) * Math.PI / 180,
+      l = (280.460 + 0.9856474 * n) % 360 + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g);
+    return ((l % 360) + 360) % 360;
+  }
+  window.GS_sunLon = sunLon;
+  function zdFill(core, a) {
+    if (!core || !a) return;
+    var id = a.getAttribute('data-view'), it = BYID[id];
+    core.querySelector('.zd__cp').textContent = it ? money(it.p[CUR]) : ''; // цена и валюта обновляются всегда
+    if (core._a === a && core.getAttribute('data-view') === id) return;
+    core._a = a;
+    var st = core.parentNode, im = a.querySelector('.zt__c'), ci = core.querySelector('img'),
+      sp = !a.hasAttribute('data-i'), now = a.classList.contains('zt--now');
+    core.setAttribute('href', a.getAttribute('href')); core.setAttribute('data-view', id);
+    ci.alt = ''; ci.srcset = im.getAttribute('srcset') || ''; ci.sizes = '170px'; ci.src = im.currentSrc || im.getAttribute('src');
+    core.querySelector('.zd__ck').textContent = now ? st.getAttribute('data-nowc') : st.getAttribute(sp ? 'data-kind-sp' : 'data-kind');
+    core.querySelector('.zd__cn').textContent = a.querySelector('.zt__nm').textContent;
+    core.classList.toggle('is-now', now);
+    core.classList.remove('pop'); void core.offsetWidth; core.classList.add('pop');
+  }
+  function renderZodiac() {
+    var zod = document.getElementById('zodiac'), stage = zod && zod.querySelector('.zd__stage'); if (!stage) return;
+    var ring = stage.querySelector('.zd__ring'), core = stage.querySelector('.zd__core'), sun = stage.querySelector('.zd__sunr'),
+      lon = sunLon(new Date()), cur = Math.floor(lon / 30), now = null, first = null, shown = 0, cat = !!(CAT && CAT.ok);
+    [].forEach.call(ring.querySelectorAll('.zt'), function (a) {
+      a.classList.remove('zt--now'); var old = a.querySelector('.zt__b'); if (old) old.remove();
+      var miss = cat && !BYID[a.getAttribute('data-view')];
+      a.parentNode.hidden = miss; if (miss) return; shown++; if (!first) first = a;
+      if (a.getAttribute('data-i') === String(cur)) now = a;
+    });
+    if (cat) zod.hidden = shown < 3;
+    if (sun) { sun.style.setProperty('--sun', (270 - lon).toFixed(2) + 'deg'); sun.parentNode.classList.add('on'); }
+    var hn = zod.querySelector('[data-zod-now]');
+    if (now) {
+      now.classList.add('zt--now'); now.insertAdjacentHTML('beforeend', '<i class="zt__b">' + esc(stage.getAttribute('data-badge') || '') + '</i>');
+      if (hn) { hn.querySelector('b').textContent = now.getAttribute('data-g') || ''; hn.hidden = false; }
+    } else if (hn) hn.hidden = true;
+    var def = now || first;
+    if (core) {
+      core._def = def; if (def) { zdFill(core, core._cur && !core._cur.parentNode.hidden ? core._cur : def); core.hidden = false; } else core.hidden = true;
+      if (!stage._zd) {
+        stage._zd = 1; var tm;
+        var pick = function (e) { var a = e.target.closest && e.target.closest('.zt'); if (a) { clearTimeout(tm); core._cur = a; zdFill(core, a); } };
+        ring.addEventListener('pointerover', function (e) { if (e.pointerType !== 'touch') pick(e); });
+        ring.addEventListener('focusin', pick);
+        stage.addEventListener('pointerleave', function (e) {
+          if (e.pointerType === 'touch') return; clearTimeout(tm);
+          tm = setTimeout(function () { core._cur = null; zdFill(core, core._def); }, 450);
+        });
+      }
+    }
+    if (now && !ring._sc && window.matchMedia && matchMedia('(max-width:899px)').matches) { // лента на телефоне: показать сезонную капсулу
+      ring._sc = 1; var li = now.parentNode; ring.scrollLeft = Math.max(0, li.offsetLeft - (ring.clientWidth - li.offsetWidth) / 2);
+    }
+  }
+  function rerender() { markCur(); refreshCounts(); renderPriceSlots(); renderShop(); renderCatalogLinks(); renderStoneShop(); renderZodiac(); if (qv.classList.contains('on')) renderView(); if (dr.classList.contains('on') && STEP !== 'ok') renderDrawer(); }
+  markCur(); refreshCounts(); renderZodiac();
+  loadCatalog(function () {
+    rerender();
+    if (IS_SHOP && S.id && BYID[S.id]) openView(S.id);
+    else if (IS_SHOP && S.q && shop && (window.scrollY || 0) < 40) { try { window.scrollTo(0, Math.max(0, shop.getBoundingClientRect().top + window.scrollY - 48)); } catch (e) {} }
+  });
+  // для модалки заявки на главной — текущая цена в выбранной валюте; для карточки «минерал недели» — есть ли украшения с камнем
+  window.GS_SHOP = {
+    price: function (id) { var it = BYID[id]; return it ? money(it.p[CUR]) : ''; },
+    link: function (ru) { var fr = stoneFind(ru); return { n: fr.list.length, href: shopHref() + '?q=' + encodeURIComponent(fr.stems.join(' ')) }; }
+  };
+})();
+
+/* ── «Мой космос» на всех страницах (23.11.2026): вход в кабинет из шапки, автоподстановка даты на главной,
+   предложение сохранить камень, автозаполнение имени/контакта в корзине и заявке для вошедших ── */
+(function () {
+  if (window.__gsMe) return; window.__gsMe = 1;
+  var L = (document.documentElement.lang || 'ru').slice(0, 2); if (['ru', 'ro', 'en'].indexOf(L) < 0) L = 'ru';
+  var P = L === 'ru' ? '' : '/' + L, K = P + '/kabinet/';
+  var TX = { ru: ['Кабинет', 'Сохранить мой камень в личном кабинете', 'подборка, разборы и камень дня — всегда под рукой'],
+    ro: ['Cabinet', 'Salvează piatra mea în cabinetul personal', 'selecție, analize și piatra zilei — mereu la îndemână'],
+    en: ['My account', 'Save my stone in my account', 'picks, readings and stone of the day — always at hand'] }[L];
+  var onKab = /\/kabinet\/?$/.test(location.pathname), ME = null;
+  function chip() {
+    if (onKab || document.getElementById('gsMe')) return;
+    var host = document.querySelector('.langsw-top');
+    var a = document.createElement('a'); a.id = 'gsMe'; a.href = K;
+    a.style.cssText = 'display:inline-flex;align-items:center;gap:.35em;margin-right:.6rem;font-family:var(--f-m,monospace);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:inherit;text-decoration:none;white-space:nowrap';
+    a.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" stroke="currentColor" stroke-width="1.4"/></svg><span></span>';
+    a.lastChild.textContent = ME && ME.name ? ME.name : TX[0];
+    if (host) host.insertBefore(a, host.firstChild);
+    else { a.style.cssText += ';position:fixed;top:.6rem;left:.6rem;z-index:60;background:rgba(14,16,19,.75);color:#f3efe6;padding:.4rem .6rem;border-radius:999px'; document.body.appendChild(a); }
+  }
+  function fill(id, v) { var e = document.getElementById(id); if (e && v && !e.value) e.value = v; }
+  function prefill() {
+    if (!ME) return;
+    var c = ME.email || (ME.telegram ? '@' + ME.telegram : '') || (ME.instagram ? 'instagram @' + ME.instagram : '');
+    ['lbName', 'dName', 'ldName'].forEach(function (i) { fill(i, ME.name); });
+    ['lbContact', 'dContact', 'ldContact'].forEach(function (i) { fill(i, c); });
+  }
+  // главная: дата из профиля → сразу показываем камень и подборку
+  function homeDate() {
+    if (!ME || !ME.birth_date) return; var bd = document.getElementById('bd'), go = document.getElementById('go');
+    if (!bd || !go || bd.value) return; var p = ME.birth_date.split('-'); bd.value = p[2] + '.' + p[1] + '.' + p[0];
+    try { bd.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {} go.click();
+  }
+  // после результата на главной — предложение сохранить в кабинете (только гостям)
+  document.addEventListener('gs:stone', function (e) {
+    var old = document.getElementById('gsSave'); if (old) old.remove();
+    if (!e.detail || ME) return; var bd = document.getElementById('bd'), res = document.getElementById('res'); if (!bd || !res) return;
+    var a = document.createElement('a'); a.id = 'gsSave'; a.href = K + '?bd=' + encodeURIComponent(bd.value.replace(/\s/g, ''));
+    a.style.cssText = 'display:block;margin-top:14px;padding:12px 14px;border:1px solid currentColor;border-radius:10px;text-decoration:none;color:inherit';
+    a.innerHTML = '<b></b><br><small style="opacity:.75"></small>'; a.firstChild.textContent = TX[1] + ' →'; a.lastChild.textContent = TX[2];
+    res.appendChild(a);
+  });
+  // язык и валюта из профиля: валюта — всегда; язык — один раз за сеанс (дальше человек может переключить сам)
+  function applyPrefs() {
+    if (!ME) return false;
+    try {
+      if (ME.currency && localStorage.getItem('gs_cur') !== ME.currency) {
+        localStorage.setItem('gs_cur', ME.currency);
+        var b = document.querySelector('[data-cur="' + ME.currency + '"]'); if (b) b.click();
+      }
+      if (ME.lang && ME.lang !== L && !sessionStorage.getItem('gs_lang_ok')) {
+        sessionStorage.setItem('gs_lang_ok', '1');
+        var path = location.pathname.replace(/^\/(ro|en)(?=\/|$)/, '') || '/';
+        location.replace((ME.lang === 'ru' ? '' : '/' + ME.lang) + path + location.search + location.hash); return true;
+      }
+      sessionStorage.setItem('gs_lang_ok', '1');
+    } catch (e) {}
+    return false;
+  }
+  function run() {
+    var hint = null; try { hint = localStorage.getItem('gs_in'); } catch (e) {}
+    (hint ? fetch('/api/me', { credentials: 'same-origin' }) : Promise.reject()).then(function (r) { return r.json(); }).then(function (j) { if (j && j.ok) ME = j.account; else try { localStorage.removeItem('gs_in'); } catch (e) {} })
+      .catch(function () {}).then(function () { if (applyPrefs()) return; chip(); prefill(); homeDate(); setTimeout(function () { chip(); prefill(); }, 1500); });
+    document.addEventListener('click', function () { setTimeout(prefill, 50); }, true);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
+})();

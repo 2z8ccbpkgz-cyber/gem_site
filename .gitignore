@@ -1,0 +1,9 @@
+node_modules/
+.crawl-cache/
+.env
+*.env
+.env.*
+.cfx/
+*.token
+.dev.vars
+session-*.json

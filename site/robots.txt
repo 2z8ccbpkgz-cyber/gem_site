@@ -1,0 +1,33 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Поисковые и ИИ-ассистенты разрешены (GEO)
+User-agent: GPTBot
+Allow: /
+User-agent: OAI-SearchBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: Claude-SearchBot
+Allow: /
+User-agent: Claude-User
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: Perplexity-User
+Allow: /
+User-agent: Google-Extended
+Allow: /
+User-agent: Applebot
+Allow: /
+User-agent: YandexBot
+Allow: /
+User-agent: Bingbot
+Allow: /
+
+Sitemap: https://gemstone.md/sitemap.xml
+Sitemap: https://gemstone.md/sitemap-video.xml
+Sitemap: https://gemstone.md/sitemap-seo.xml
