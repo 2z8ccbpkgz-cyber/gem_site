@@ -10,6 +10,8 @@ const TOPICS = ["signs", "gifts", "stones", "rings", "capsules"];
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,100}$/;
 const IG = "https://www.instagram.com/gemstone_md/";
 const IGDM = "https://ig.me/m/gemstone_md";
+/* Google требует дату со временем и часовым поясом: «2026-08-23» → «2026-08-23T12:00:00+02:00» */
+const isoDT = (d) => (/^\d{4}-\d{2}-\d{2}$/.test(String(d || "")) ? `${d}T12:00:00+02:00` : d);
 
 /* ───────────── строки интерфейса (контент поста приходит из данных) ───────────── */
 const J = {
@@ -291,12 +293,12 @@ async function renderPost(env, origin, l, post, cat, idx, ch) {
 
   /* JSON-LD */
   const graph = [
-    { "@type": "VideoObject", "@id": url + "#video", name: h1, description: answer || h1, thumbnailUrl: [poster], uploadDate: post.date, duration: isoDur(dur), contentUrl: video, inLanguage: translated ? l : "ru",
-      ...(post.width ? { width: post.width, height: post.height } : {}), transcript, author: { "@id": BASE + "/#natalia" }, publisher: { "@id": BASE + "/#store" },
+    { "@type": "VideoObject", "@id": url + "#video", name: h1, description: answer || h1, thumbnailUrl: [poster], uploadDate: isoDT(post.date), duration: isoDur(dur), contentUrl: video, inLanguage: translated ? l : "ru",
+      ...(post.width ? { width: post.width, height: post.height } : {}), transcript, author: { "@type": "Person", "@id": BASE + "/#natalia", name: l === "ru" ? "Наталья" : "Natalia", url: IG }, publisher: { "@id": BASE + "/#store" },
       ...(views ? { interactionStatistic: { "@type": "InteractionCounter", interactionType: { "@type": "WatchAction" }, userInteractionCount: views } } : {}), mainEntityOfPage: url },
-    { "@type": "Person", "@id": BASE + "/#natalia", name: l === "ru" ? "Наталья" : "Natalia", sameAs: [IG], worksFor: { "@id": BASE + "/#store" } },
-    { "@type": "Article", "@id": url + "#article", headline: h1, description: answer || h1, image: [poster], datePublished: post.date, dateModified: post.date, inLanguage: translated ? l : "ru",
-      author: { "@type": "Person", name: l === "ru" ? "Наталья" : "Natalia", sameAs: [IG] }, publisher: { "@id": BASE + "/#store" }, mainEntityOfPage: url, video: { "@id": url + "#video" } },
+    { "@type": "Person", "@id": BASE + "/#natalia", name: l === "ru" ? "Наталья" : "Natalia", url: IG, sameAs: [IG], worksFor: { "@id": BASE + "/#store" } },
+    { "@type": "Article", "@id": url + "#article", headline: h1, description: answer || h1, image: [poster], datePublished: isoDT(post.date), dateModified: isoDT(post.date), inLanguage: translated ? l : "ru",
+      author: { "@type": "Person", name: l === "ru" ? "Наталья" : "Natalia", url: IG, sameAs: [IG] }, publisher: { "@id": BASE + "/#store" }, mainEntityOfPage: url, video: { "@id": url + "#video" } },
     ...skus.map((it) => {
       const pu = `${BASE}${PFX[l]}/p/${skuSlug(it.id)}/`, pics = cx.pic(it);
       const ph = pics[1] === "item" && pics[0].length ? pics[0].map(([a]) => BASE + a) : [poster || BASE + "/assets/og.jpg"];
